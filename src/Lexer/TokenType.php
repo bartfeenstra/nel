@@ -7,6 +7,7 @@ namespace Bartfeenstra\Nel\Lexer;
 enum TokenType
 {
     case WHITESPACE;
-    case LITERAL_STRING;
-    case LITERAL_INTEGER;
+    case STRING;
+    case INTEGER;
+    case OPERATOR;
 }

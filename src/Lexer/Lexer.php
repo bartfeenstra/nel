@@ -41,26 +41,44 @@ final class Lexer
                     continue;
                 }
 
-                // String literals.
-                $stringLiteralMatches = [];
-                if (
-                    $this->isPregMatch(
-                        '/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'/As',
-                        $stringLiteralMatches,
-                    )
-                ) {
-                    [$integerLiteralSource, $integerLiteralValue] = $stringLiteralMatches;
-                    yield new Token(TokenType::LITERAL_STRING, $integerLiteralValue, $this->cursor);
-                    $this->consume(\mb_strlen($integerLiteralSource));
+                // Strings.
+                $stringMatches = $this->isPregMatch(
+                    '/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'/As',
+                );
+                if ($stringMatches) {
+                    [$stringSource, $stringValue] = $stringMatches;
+                    yield new Token(TokenType::STRING, $stringValue, $this->cursor);
+                    $this->consume(\mb_strlen($stringSource));
                     continue;
                 }
 
-                // Integer literals.
-                $integerLiteralMatches = [];
-                if ($this->isPregMatch('/(.+)/', $integerLiteralMatches)) {
-                    [$integerLiteralSource, $integerLiteralValue] = $integerLiteralMatches;
-                    yield new Token(TokenType::LITERAL_INTEGER, $integerLiteralValue, $this->cursor);
-                    $this->consume(\mb_strlen($integerLiteralSource));
+                // Integers.
+                $integerMatches = $this->isPregMatch('/(\d+)/');
+                if ($integerMatches) {
+                    [$integerSource, $integerValue] = $integerMatches;
+                    yield new Token(TokenType::INTEGER, $integerValue, $this->cursor);
+                    $this->consume(\strlen($integerSource));
+                    continue;
+                }
+
+                // Operators.
+                $operator = $this->isOneOf([
+                    'startswith',
+                    'endswith',
+                    'contains',
+                    'in',
+                    'and',
+                    'or',
+                    '<=',
+                    '>=',
+                    '!=',
+                    '<',
+                    '>',
+                    '=',
+                ]);
+                if ($operator) {
+                    yield new Token(TokenType::OPERATOR, $operator, $this->cursor);
+                    $this->consume(\strlen($operator));
                     continue;
                 }
 
@@ -75,18 +93,29 @@ final class Lexer
         }
     }
 
+    private function isOneOf(array $sourceNeedles): ?string
+    {
+        $source = \mb_substr($this->source, $this->cursor);
+        foreach ($sourceNeedles as $sourceNeedle) {
+            if (str_starts_with($source, $sourceNeedle)) {
+                return $sourceNeedle;
+            }
+        }
+    }
+
     private function isWhitespace(): bool
     {
         return str_contains(' ', $this->current());
     }
 
-    private function isPregMatch(string $pattern, array &$matches): bool
+    private function isPregMatch(string $pattern): ?array
     {
-        $match = preg_match($pattern, $this->remainder(), $matches);
+        $matches = [];
+        $match = preg_match($pattern, $this->source, $matches, 0, $this->cursor);
         if (false === $match) {
             throw new \RuntimeException(\preg_last_error_msg());
         }
-        return (bool) $match;
+        return 1 === $match ? $matches : null;
     }
 
     private function current(): string
