@@ -6,15 +6,15 @@ namespace Bartfeenstra\Nel\Operator;
 
 use Bartfeenstra\Nel\Type;
 
-final class IsGreaterThanOperator extends BinaryOperator
+final class AddOperator extends BinaryOperator
 {
     protected function __construct()
     {
-        parent::__construct('gt', 20, Associativity::LEFT);
+        parent::__construct('add', 30, Associativity::LEFT);
     }
 
     public function type(): Type
     {
-        return Type::BOOLEAN;
+        return Type::INTEGER;
     }
 }
