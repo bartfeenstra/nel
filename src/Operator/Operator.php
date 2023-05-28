@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Operator;
 
+use Bartfeenstra\Nel\Type;
+
 abstract class Operator
 {
     /**
@@ -16,6 +18,8 @@ abstract class Operator
         public readonly int $precedence,
     ) {
     }
+
+    abstract public function type(): Type;
 
     public static function get(): self
     {
@@ -41,6 +45,8 @@ abstract class Operator
             IsNotOperator::get(),
             IsOperator::get(),
             NotOperator::get(),
+            AddOperator::get(),
+            SubtractOperator::get(),
         ];
     }
 

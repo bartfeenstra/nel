@@ -19,7 +19,7 @@ final class BinaryOperatorExpression extends OperatorExpression
         if ($this->leftOperand->type() !== $this->rightOperand->type()) {
             throw new ParseError(sprintf(
                 'Operator "%s" expects its operands to be of the same type, but instead they yield %s and %s.',
-                $this->operator->value,
+                $this->operator->token,
                 $this->leftOperand->type()->value,
                 $this->rightOperand->type()->value,
             ));
@@ -28,6 +28,6 @@ final class BinaryOperatorExpression extends OperatorExpression
 
     public function type(): Type
     {
-        return Type::BOOLEAN;
+        return $this->operator->type();
     }
 }
