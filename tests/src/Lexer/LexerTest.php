@@ -4,9 +4,24 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Tests\Lexer;
 
+use Bartfeenstra\Nel\Lexer\BooleanToken;
+use Bartfeenstra\Nel\Lexer\IntegerToken;
 use Bartfeenstra\Nel\Lexer\Lexer;
-use Bartfeenstra\Nel\Lexer\Token;
-use Bartfeenstra\Nel\Lexer\TokenType;
+use Bartfeenstra\Nel\Lexer\NullToken;
+use Bartfeenstra\Nel\Lexer\OperatorToken;
+use Bartfeenstra\Nel\Lexer\StringToken;
+use Bartfeenstra\Nel\Lexer\WhitespaceToken;
+use Bartfeenstra\Nel\Operator\AndOperator;
+use Bartfeenstra\Nel\Operator\ContainsOperator;
+use Bartfeenstra\Nel\Operator\EndsWithOperator;
+use Bartfeenstra\Nel\Operator\InOperator;
+use Bartfeenstra\Nel\Operator\IsGreaterThanOperator;
+use Bartfeenstra\Nel\Operator\IsGreaterThanOrEqualsOperator;
+use Bartfeenstra\Nel\Operator\IsLessThanOperator;
+use Bartfeenstra\Nel\Operator\IsLessThanOrEqualsOperator;
+use Bartfeenstra\Nel\Operator\IsOperator;
+use Bartfeenstra\Nel\Operator\OrOperator;
+use Bartfeenstra\Nel\Operator\StartsWithOperator;
 use PHPUnit\Framework\TestCase;
 
 final class LexerTest extends TestCase
@@ -17,57 +32,65 @@ final class LexerTest extends TestCase
             [[], ''],
             // A single whitespace.
             [[
-                new Token(TokenType::WHITESPACE, ' ', 0),
+                new WhitespaceToken(0, ' '),
             ], ' '],
             // Multiple whitespaces.
             [[
-                new Token(TokenType::WHITESPACE, '   ', 0),
+                new WhitespaceToken(0, '   '),
             ], '   '],
+            // Booleans.
+            [[
+                new BooleanToken(0, true),
+            ], 'true'],
+            [[
+                new BooleanToken(0, false),
+            ], 'false'],
+            // Null.
+            [[
+                new NullToken(0),
+            ], 'null'],
             // A string.
             [[
-                new Token(TokenType::STRING, '123', 0),
+                new StringToken(0, '123'),
             ], '"123"'],
             // An integer.
             [[
-                new Token(TokenType::INTEGER, 123, 0),
+                new IntegerToken(0, 123),
             ], '123'],
             // Operators.
             [[
-                new Token(TokenType::OPERATOR, 'startswith', 0),
-            ], 'startswith'],
+                new OperatorToken(0, StartsWithOperator::get()),
+            ], StartsWithOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, 'endswith', 0),
-            ], 'endswith'],
+                new OperatorToken(0, EndsWithOperator::get()),
+            ], EndsWithOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, 'contains', 0),
-            ], 'contains'],
+                new OperatorToken(0, ContainsOperator::get()),
+            ], ContainsOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, 'in', 0),
-            ], 'in'],
+                new OperatorToken(0, InOperator::get()),
+            ], InOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, 'and', 0),
-            ], 'and'],
+                new OperatorToken(0, AndOperator::get()),
+            ], AndOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, 'or', 0),
-            ], 'or'],
+                new OperatorToken(0, OrOperator::get()),
+            ], OrOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, '<=', 0),
-            ], '<='],
+                new OperatorToken(0, IsOperator::get()),
+            ], IsOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, '<', 0),
-            ], '<'],
+                new OperatorToken(0, IsLessThanOrEqualsOperator::get()),
+            ], IsLessThanOrEqualsOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, '=', 0),
-            ], '='],
+                new OperatorToken(0, IsLessThanOperator::get()),
+            ], IsLessThanOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, '!=', 0),
-            ], '!='],
+                new OperatorToken(0, IsGreaterThanOrEqualsOperator::get()),
+            ], IsGreaterThanOrEqualsOperator::get()->token],
             [[
-                new Token(TokenType::OPERATOR, '>', 0),
-            ], '>'],
-            [[
-                new Token(TokenType::OPERATOR, '>=', 0),
-            ], '>='],
+                new OperatorToken(0, IsGreaterThanOperator::get()),
+            ], IsGreaterThanOperator::get()->token],
         ];
     }
 
@@ -78,36 +101,5 @@ final class LexerTest extends TestCase
     {
         $sut = new Lexer($source);
         $this->assertEquals($expectedTokens, \iterator_to_array($sut->tokenize()));
-    }
-    public function testEmpty(): void
-    {
-        $sut = new Lexer('');
-        $this->assertEquals([], \iterator_to_array($sut->tokenize()));
-    }
-
-    public function testSingleWhitespace(): void {
-        $sut = new Lexer(' ');
-        $this->assertEquals([new Token(TokenType::WHITESPACE, ' ', 0)], \iterator_to_array($sut->tokenize()));
-    }
-
-    public function testMultipleWhitespace(): void {
-        $sut = new Lexer('   ');
-        $this->assertEquals([new Token(TokenType::WHITESPACE, '   ', 0)], \iterator_to_array($sut->tokenize()));
-    }
-
-    public function testLiteralString(): void
-    {
-        $sut = new Lexer('"123"');
-        $this->assertEquals([new Token(TokenType::STRING, '123', 0)], \iterator_to_array($sut->tokenize()));
-    }
-
-    public function testLiteralInt(): void {
-        $sut = new Lexer('123');
-        $this->assertEquals([new Token(TokenType::INTEGER, 123, 0)], \iterator_to_array($sut->tokenize()));
-    }
-
-    public function testOperator(): void {
-        $sut = new Lexer('<=');
-        $this->assertEquals([new Token(TokenType::OPERATOR, '<=', 0)], \iterator_to_array($sut->tokenize()));
     }
 }

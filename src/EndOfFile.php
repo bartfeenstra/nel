@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Bartfeenstra\Nel\Lexer;
+namespace Bartfeenstra\Nel;
 
 final class EndOfFile extends \RuntimeException
 {
