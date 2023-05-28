@@ -4,20 +4,27 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Lexer;
 
+use Bartfeenstra\Nel\EndOfFile;
+use Bartfeenstra\Nel\Operator\Operator;
+use Bartfeenstra\Nel\SyntaxError;
+
 final class Lexer
 {
     private int $cursor;
     private int $end;
-    private bool $eof;
+    private bool $endOfFile;
 
     public function __construct(
         public readonly string $source,
     ) {
         $this->cursor = 0;
         $this->end = \mb_strlen($source);
-        $this->eof = false;
+        $this->endOfFile = false;
     }
 
+    /*
+     * @throws SyntaxError
+     */
     public function tokenize(): \Traversable
     {
         try {
@@ -33,11 +40,26 @@ final class Lexer
                         }
                     } catch (EndOfFile) {
                     }
-                    yield new Token(
-                        TokenType::WHITESPACE,
-                        $whitespace,
+                    yield new WhitespaceToken(
                         $whitespaceStart,
+                        $whitespace,
                     );
+                    continue;
+                }
+
+                // Booleans.
+                $boolean = $this->isOneOf(['true', 'false']);
+                if ($boolean) {
+                    yield new BooleanToken($this->cursor, 'true' === $boolean);
+                    $this->consume(\strlen($boolean));
+                    continue;
+                }
+
+                // null.
+                $null = $this->is('null');
+                if ($null) {
+                    yield new NullToken($this->cursor);
+                    $this->consume(4);
                     continue;
                 }
 
@@ -47,7 +69,7 @@ final class Lexer
                 );
                 if ($stringMatches) {
                     [$stringSource, $stringValue] = $stringMatches;
-                    yield new Token(TokenType::STRING, $stringValue, $this->cursor);
+                    yield new StringToken($this->cursor, $stringValue);
                     $this->consume(\mb_strlen($stringSource));
                     continue;
                 }
@@ -56,38 +78,27 @@ final class Lexer
                 $integerMatches = $this->isPregMatch('/(\d+)/');
                 if ($integerMatches) {
                     [$integerSource, $integerValue] = $integerMatches;
-                    yield new Token(TokenType::INTEGER, $integerValue, $this->cursor);
+                    yield new IntegerToken($this->cursor, (int)$integerValue);
                     $this->consume(\strlen($integerSource));
                     continue;
                 }
 
                 // Operators.
-                $operator = $this->isOneOf([
-                    'startswith',
-                    'endswith',
-                    'contains',
-                    'in',
-                    'and',
-                    'or',
-                    '<=',
-                    '>=',
-                    '!=',
-                    '<',
-                    '>',
-                    '=',
-                ]);
-                if ($operator) {
-                    yield new Token(TokenType::OPERATOR, $operator, $this->cursor);
-                    $this->consume(\strlen($operator));
+                $operatorTokenValue = $this->isOneOf(array_map(
+                    fn(Operator $operator) => $operator->token,
+                    Operator::operators(),
+                ));
+                if ($operatorTokenValue) {
+                    yield new OperatorToken($this->cursor, Operator::operator($operatorTokenValue));
+                    $this->consume(\strlen($operatorTokenValue));
                     continue;
                 }
 
-                throw new \InvalidArgumentException(sprintf(
-                    'Unknown token "%s" at position %d of "%s".',
+                throw new SyntaxError(
                     $this->current(),
                     $this->cursor,
                     $this->source,
-                ));
+                );
             }
         } catch (EndOfFile) {
         }
@@ -101,6 +112,12 @@ final class Lexer
                 return $sourceNeedle;
             }
         }
+        return null;
+    }
+
+    private function is(string $sourceNeedle): ?string
+    {
+        return str_starts_with(\mb_substr($this->source, $this->cursor), $sourceNeedle) ? $sourceNeedle : null;
     }
 
     private function isWhitespace(): bool
@@ -120,15 +137,10 @@ final class Lexer
 
     private function current(): string
     {
-        if ($this->eof) {
+        if ($this->endOfFile) {
             throw new EndOfFile();
         }
         return $this->source[$this->cursor];
-    }
-
-    private function remainder(): string
-    {
-        return \mb_substr($this->source, $this->cursor);
     }
 
     private function consume(int $count = 1): string
@@ -139,7 +151,7 @@ final class Lexer
             $value .= $this->current();
             $this->cursor++;
             if ($this->cursor === $this->end) {
-                $this->eof = true;
+                $this->endOfFile = true;
             }
         }
         return $value;
