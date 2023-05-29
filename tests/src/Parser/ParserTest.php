@@ -34,11 +34,13 @@ use Bartfeenstra\Nel\Parser\StringExpression;
 use Bartfeenstra\Nel\Parser\UnaryOperatorExpression;
 use Bartfeenstra\Nel\Type\IntegerType;
 use Bartfeenstra\Nel\Type\StructType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @psalm-api
  */
+#[CoversClass(Parser::class)]
 final class ParserTest extends TestCase
 {
     public function testParseWithoutTokens(): void
