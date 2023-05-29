@@ -83,6 +83,19 @@ final class Lexer
                     continue;
                 }
 
+                // Data.
+                if ($this->is('.')) {
+                    yield new DataDotToken($this->cursor);
+                    $this->consume();
+                    $dataFieldMatches = $this->isPregMatch('([a-zA-Z0-9]+)');
+                    if ($dataFieldMatches) {
+                        $dataField = $dataFieldMatches[0];
+                        yield new DataFieldToken($this->cursor, $dataField);
+                        $this->consume(\strlen($dataField));
+                    }
+                    continue;
+                }
+
                 // Operators.
                 $operatorTokenValue = $this->isOneOf(array_map(
                     fn(Operator $operator) => $operator->token,
@@ -129,17 +142,16 @@ final class Lexer
     }
 
     /**
-     * @return array{0: string, 1: string}|null
+     * @return list<string>|null
      */
     private function isPregMatch(string $pattern): ?array
     {
         $matches = [];
         $match = preg_match($pattern, $this->source, $matches, 0, $this->cursor);
-        /** @var array{0: string, 1: string}|array{} $matches */
         if (false === $match) {
             throw new \RuntimeException(\preg_last_error_msg());
         }
-        return (1 === $match and $matches) ? $matches : null;
+        return 1 === $match ? $matches : null;
     }
 
     private function current(): string

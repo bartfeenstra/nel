@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Bartfeenstra\Nel\Tests\Parser;
 
 use Bartfeenstra\Nel\Lexer\BooleanToken;
+use Bartfeenstra\Nel\Lexer\DataDotToken;
+use Bartfeenstra\Nel\Lexer\DataFieldToken;
 use Bartfeenstra\Nel\Lexer\IntegerToken;
 use Bartfeenstra\Nel\Lexer\NullToken;
 use Bartfeenstra\Nel\Lexer\OperatorToken;
@@ -16,6 +18,7 @@ use Bartfeenstra\Nel\Operator\MultiplyOperator;
 use Bartfeenstra\Nel\Operator\NotOperator;
 use Bartfeenstra\Nel\Parser\BinaryOperatorExpression;
 use Bartfeenstra\Nel\Parser\BooleanExpression;
+use Bartfeenstra\Nel\Parser\DataExpression;
 use Bartfeenstra\Nel\Parser\IntegerExpression;
 use Bartfeenstra\Nel\Parser\NullExpression;
 use Bartfeenstra\Nel\Parser\Parser;
@@ -163,6 +166,40 @@ final class ParserTest extends TestCase
                     new IntegerExpression(3),
                 ),
             ),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseDataDot(): void {
+        $sut = new Parser([
+            new DataDotToken(0),
+        ]);
+        $this->assertEquals(
+            new DataExpression([]),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseDataDotAndField(): void {
+        $sut = new Parser([
+            new DataDotToken(0),
+            new DataFieldToken(1, 'foo'),
+        ]);
+        $this->assertEquals(
+            new DataExpression(['foo']),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseDataDotAndNestedFields(): void {
+        $sut = new Parser([
+            new DataDotToken(0),
+            new DataFieldToken(1, 'foo'),
+            new DataDotToken(4),
+            new DataFieldToken(5, 'bar'),
+        ]);
+        $this->assertEquals(
+            new DataExpression(['foo', 'bar']),
             $sut->parse(),
         );
     }

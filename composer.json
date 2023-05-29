@@ -36,7 +36,7 @@
             "@test-phpunit"
         ],
         "test-phpcs": "./vendor/bin/phpcs ./src",
-        "test-psalm": "./vendor/bin/psalm --show-info=true",
+        "test-psalm": "./vendor/bin/psalm",
         "test-phpstan": "./vendor/bin/phpstan analyse",
         "test-phpunit": "./vendor/bin/phpunit",
         "fix": "@fix-phpcbf",

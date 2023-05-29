@@ -12,7 +12,7 @@ final class SyntaxError extends \RuntimeException
         public readonly string $source
     ) {
         parent::__construct(sprintf(
-            'Unknown token "%s" at position %d of "%s".',
+            'Unexpected character "%s" at position %d of "%s".',
             $this->tokenValue,
             $this->cursor,
             $this->source,
