@@ -28,11 +28,13 @@ use Bartfeenstra\Nel\Operator\IsOperator;
 use Bartfeenstra\Nel\Operator\OrOperator;
 use Bartfeenstra\Nel\Operator\StartsWithOperator;
 use Bartfeenstra\Nel\SyntaxError;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @psalm-api
  */
+#[CoversClass(Lexer::class)]
 final class LexerTest extends TestCase
 {
     /**
