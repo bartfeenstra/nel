@@ -9,7 +9,10 @@ use Bartfeenstra\Nel\Lexer\DataDotToken;
 use Bartfeenstra\Nel\Lexer\DataFieldToken;
 use Bartfeenstra\Nel\Lexer\DoNotParseToken;
 use Bartfeenstra\Nel\Lexer\ExpressionFactoryToken;
+use Bartfeenstra\Nel\Lexer\ListCloseToken;
+use Bartfeenstra\Nel\Lexer\ListOpenToken;
 use Bartfeenstra\Nel\Lexer\OperatorToken;
+use Bartfeenstra\Nel\Lexer\SeparatorToken;
 use Bartfeenstra\Nel\Lexer\Token;
 use Bartfeenstra\Nel\Operator\Associativity;
 use Bartfeenstra\Nel\Operator\BinaryOperator;
@@ -42,19 +45,18 @@ final class Parser
 
     private function parseExpression(int $precedence = 0): ?Expression
     {
-        $expression = null;
-
         if ($this->is(DoNotParseToken::class)) {
             $this->consume();
             /** @phpstan-ignore-next-line */
             while (!$this->endOfFile and $this->is(DoNotParseToken::class)) {
                 $this->consume();
             }
+            if ($this->endOfFile) {
+                return null;
+            }
         }
 
-        if ($this->endOfFile) {
-            return $expression;
-        }
+        $expression = null;
 
         if ($this->is(ExpressionFactoryToken::class)) {
             /** @var ExpressionFactoryToken $token */
@@ -84,12 +86,29 @@ final class Parser
                     $fields[] = $token->field;
                 }
             }
-            /** @phpstan-ignore-next-line */
             $expression = new DataExpression($fields);
+        } elseif ($this->is(ListOpenToken::class)) {
+            $this->consume();
+            $values = [];
+            while (!$this->endOfFile and !$this->is(ListCloseToken::class)) {
+                if ($this->is(SeparatorToken::class)) {
+                    $this->consume();
+                    continue;
+                }
+                $valueExpression = $this->parseExpression();
+                if ($valueExpression) {
+                    $values[] = $valueExpression;
+                }
+            }
+            if ($this->is(ListCloseToken::class)) {
+                $this->consume();
+            } else {
+                throw new ParseError('List was not closed.');
+            }
+            $expression = new ListExpression($values);
         }
 
         // Finally, parse binary operators and see if they take the parsed expression as a left operand.
-        /** @phpstan-ignore-next-line */
         while (!$this->endOfFile and $this->is(OperatorToken::class)) {
             /** @var OperatorToken $token */
             $token = $this->current();

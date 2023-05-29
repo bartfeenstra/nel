@@ -15,6 +15,7 @@ Nel is an expression parser that turns a string into an [AST](https://en.wikiped
   - null: `null`
   - strings: `'string'` or `"string"`
   - integers: `123`
+  - lists: `[123, 456]`
 - unary operators
   - `not`
 - binary operators

@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Tests\Parser;
 
+use Bartfeenstra\Nel\Lexer\ListCloseToken;
+use Bartfeenstra\Nel\Lexer\ListOpenToken;
 use Bartfeenstra\Nel\Lexer\BooleanToken;
 use Bartfeenstra\Nel\Lexer\DataDotToken;
 use Bartfeenstra\Nel\Lexer\DataFieldToken;
 use Bartfeenstra\Nel\Lexer\IntegerToken;
 use Bartfeenstra\Nel\Lexer\NullToken;
 use Bartfeenstra\Nel\Lexer\OperatorToken;
+use Bartfeenstra\Nel\Lexer\SeparatorToken;
 use Bartfeenstra\Nel\Lexer\StringToken;
 use Bartfeenstra\Nel\Lexer\WhitespaceToken;
 use Bartfeenstra\Nel\Operator\AddOperator;
@@ -20,6 +23,7 @@ use Bartfeenstra\Nel\Parser\BinaryOperatorExpression;
 use Bartfeenstra\Nel\Parser\BooleanExpression;
 use Bartfeenstra\Nel\Parser\DataExpression;
 use Bartfeenstra\Nel\Parser\IntegerExpression;
+use Bartfeenstra\Nel\Parser\ListExpression;
 use Bartfeenstra\Nel\Parser\NullExpression;
 use Bartfeenstra\Nel\Parser\Parser;
 use Bartfeenstra\Nel\Parser\StringExpression;
@@ -200,6 +204,83 @@ final class ParserTest extends TestCase
         ]);
         $this->assertEquals(
             new DataExpression(['foo', 'bar']),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseEmptyList(): void {
+        $sut = new Parser([
+            new ListOpenToken(0),
+            new ListCloseToken(1),
+        ]);
+        $this->assertEquals(
+            new ListExpression([]),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseEmptyListWithSeparators(): void {
+        $sut = new Parser([
+            new ListOpenToken(0),
+            new SeparatorToken(1),
+            new SeparatorToken(2),
+            new SeparatorToken(3),
+            new ListCloseToken(4),
+        ]);
+        $this->assertEquals(
+            new ListExpression([]),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseListWithSingleValue(): void {
+        $sut = new Parser([
+            new ListOpenToken(0),
+            new IntegerToken(1, 123),
+            new ListCloseToken(2),
+        ]);
+        $this->assertEquals(
+            new ListExpression([
+                new IntegerExpression(123),
+            ]),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseListWithMultipleValues(): void {
+        $sut = new Parser([
+            new ListOpenToken(0),
+            new IntegerToken(1, 123),
+            new SeparatorToken(4),
+            new IntegerToken(5, 456),
+            new ListCloseToken(8),
+        ]);
+        $this->assertEquals(
+            new ListExpression([
+                new IntegerExpression(123),
+                new IntegerExpression(456),
+                ]),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseListWithMultipleValuesAndWhitespace(): void {
+        $sut = new Parser([
+            new ListOpenToken(0),
+            new WhitespaceToken(1, ' '),
+            new IntegerToken(2, 123),
+            new WhitespaceToken(5, ' '),
+            new SeparatorToken(6),
+            new WhitespaceToken(7, ' '),
+            new IntegerToken(8, 456),
+            new WhitespaceToken(11, ' '),
+            new ListCloseToken(12),
+        ]);
+        $this->assertEquals(
+            new ListExpression([
+                new IntegerExpression(123),
+                new IntegerExpression(456),
+                ]),
             $sut->parse(),
         );
     }

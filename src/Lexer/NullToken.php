@@ -8,12 +8,6 @@ use Bartfeenstra\Nel\Parser\NullExpression;
 
 final class NullToken extends Token implements ExpressionFactoryToken
 {
-    public function __construct(
-        int $cursor,
-    ) {
-        parent::__construct($cursor);
-    }
-
     public function expression(): NullExpression
     {
         return new NullExpression();
