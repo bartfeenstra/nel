@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Tests\Lexer;
 
+use Bartfeenstra\Nel\Lexer\ListCloseToken;
+use Bartfeenstra\Nel\Lexer\ListOpenToken;
 use Bartfeenstra\Nel\Lexer\BooleanToken;
 use Bartfeenstra\Nel\Lexer\DataDotToken;
 use Bartfeenstra\Nel\Lexer\DataFieldToken;
@@ -11,6 +13,7 @@ use Bartfeenstra\Nel\Lexer\IntegerToken;
 use Bartfeenstra\Nel\Lexer\Lexer;
 use Bartfeenstra\Nel\Lexer\NullToken;
 use Bartfeenstra\Nel\Lexer\OperatorToken;
+use Bartfeenstra\Nel\Lexer\SeparatorToken;
 use Bartfeenstra\Nel\Lexer\StringToken;
 use Bartfeenstra\Nel\Lexer\WhitespaceToken;
 use Bartfeenstra\Nel\Operator\AndOperator;
@@ -65,7 +68,32 @@ final class LexerTest extends TestCase
             [[
                 new IntegerToken(0, 123),
             ], '123'],
-            // Fields.
+            // Lists.
+            [[
+                new ListOpenToken(0),
+                new ListCloseToken(1),
+            ], '[]'],
+            [[
+                new ListOpenToken(0),
+                new IntegerToken(1, 123),
+                new ListCloseToken(4),
+            ], '[123]'],
+            [[
+                new ListOpenToken(0),
+                new IntegerToken(1, 123),
+                new SeparatorToken(4),
+                new WhitespaceToken(5, ' '),
+                new IntegerToken(6, 456),
+                new ListCloseToken(9),
+            ], '[123, 456]'],
+            [[
+                new ListOpenToken(0),
+                new SeparatorToken(1),
+                new SeparatorToken(2),
+                new SeparatorToken(3),
+                new ListCloseToken(4),
+            ], '[,,,]'],
+            // Data.
             [[
                 new DataDotToken(0),
             ], '.'],

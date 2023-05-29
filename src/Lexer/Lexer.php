@@ -66,6 +66,7 @@ final class Lexer
                 // Strings.
                 $stringMatches = $this->isPregMatch(
                     '/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|\'([^\'\\\\]*(?:\\\\.[^\'\\\\]*)*)\'/As',
+                    true,
                 );
                 if ($stringMatches) {
                     [$stringSource, $stringValue] = $stringMatches;
@@ -75,7 +76,7 @@ final class Lexer
                 }
 
                 // Integers.
-                $integerMatches = $this->isPregMatch('/(\d+)/');
+                $integerMatches = $this->isPregMatch('/^(\d+)/');
                 if ($integerMatches) {
                     [$integerSource, $integerValue] = $integerMatches;
                     yield new IntegerToken($this->cursor, (int)$integerValue);
@@ -83,11 +84,28 @@ final class Lexer
                     continue;
                 }
 
+                // Lists.
+                if ($this->is('[')) {
+                    yield new ListOpenToken($this->cursor);
+                    $this->consume();
+                    continue;
+                }
+                if ($this->is(']')) {
+                    yield new ListCloseToken($this->cursor);
+                    $this->consume();
+                    continue;
+                }
+                if ($this->is(',')) {
+                    yield new SeparatorToken($this->cursor);
+                    $this->consume();
+                    continue;
+                }
+
                 // Data.
                 if ($this->is('.')) {
                     yield new DataDotToken($this->cursor);
                     $this->consume();
-                    $dataFieldMatches = $this->isPregMatch('([a-zA-Z0-9]+)');
+                    $dataFieldMatches = $this->isPregMatch('/^([a-zA-Z0-9]+)/');
                     if ($dataFieldMatches) {
                         $dataField = $dataFieldMatches[0];
                         yield new DataFieldToken($this->cursor, $dataField);
@@ -144,10 +162,16 @@ final class Lexer
     /**
      * @return list<string>|null
      */
-    private function isPregMatch(string $pattern): ?array
+    private function isPregMatch(string $pattern, bool $offset = false): ?array
     {
         $matches = [];
-        $match = preg_match($pattern, $this->source, $matches, 0, $this->cursor);
+        $match = preg_match(
+            $pattern,
+            $offset ? $this->source : mb_substr($this->source, $this->cursor),
+            $matches,
+            0,
+            $offset ? $this->cursor : 0,
+        );
         if (false === $match) {
             throw new \RuntimeException(\preg_last_error_msg());
         }
