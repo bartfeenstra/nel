@@ -6,7 +6,8 @@ namespace Bartfeenstra\Nel\Parser;
 
 use Bartfeenstra\Nel\Operator\Operator;
 use Bartfeenstra\Nel\ParseError;
-use Bartfeenstra\Nel\Type;
+use Bartfeenstra\Nel\Type\BooleanType;
+use Bartfeenstra\Nel\Type\Type;
 
 final class UnaryOperatorExpression extends OperatorExpression
 {
@@ -15,17 +16,17 @@ final class UnaryOperatorExpression extends OperatorExpression
         public readonly Expression $operand,
     ) {
         parent::__construct($operator);
-        if (Type::BOOLEAN !== $this->operand->type()) {
+        if (!($this->operand->type() instanceof BooleanType)) {
             throw new ParseError(sprintf(
                 'Operator "%s" expects its operand to yield a boolean, but instead it yields %s.',
                 $this->operator->token,
-                $this->operand->type()->value,
+                $this->operand->type(),
             ));
         }
     }
 
     public function type(): Type
     {
-        return Type::BOOLEAN;
+        return new BooleanType();
     }
 }

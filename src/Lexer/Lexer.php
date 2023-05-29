@@ -7,6 +7,13 @@ namespace Bartfeenstra\Nel\Lexer;
 use Bartfeenstra\Nel\EndOfFile;
 use Bartfeenstra\Nel\Operator\Operator;
 use Bartfeenstra\Nel\SyntaxError;
+use RuntimeException;
+use Traversable;
+
+use function mb_strlen;
+use function mb_substr;
+use function preg_last_error_msg;
+use function strlen;
 
 final class Lexer
 {
@@ -18,14 +25,14 @@ final class Lexer
         public readonly string $source,
     ) {
         $this->cursor = 0;
-        $this->end = \mb_strlen($source);
+        $this->end = mb_strlen($source);
         $this->endOfFile = false;
     }
 
     /**
-     * @return \Traversable<int, Token>
+     * @return Traversable<int, Token>
      */
-    public function tokenize(): \Traversable
+    public function tokenize(): Traversable
     {
         try {
             while ($this->cursor < $this->end) {
@@ -51,7 +58,7 @@ final class Lexer
                 $boolean = $this->isOneOf(['true', 'false']);
                 if ($boolean) {
                     yield new BooleanToken($this->cursor, 'true' === $boolean);
-                    $this->consume(\strlen($boolean));
+                    $this->consume(strlen($boolean));
                     continue;
                 }
 
@@ -71,7 +78,7 @@ final class Lexer
                 if ($stringMatches) {
                     [$stringSource, $stringValue] = $stringMatches;
                     yield new StringToken($this->cursor, $stringValue);
-                    $this->consume(\mb_strlen($stringSource));
+                    $this->consume(mb_strlen($stringSource));
                     continue;
                 }
 
@@ -80,7 +87,7 @@ final class Lexer
                 if ($integerMatches) {
                     [$integerSource, $integerValue] = $integerMatches;
                     yield new IntegerToken($this->cursor, (int)$integerValue);
-                    $this->consume(\strlen($integerSource));
+                    $this->consume(strlen($integerSource));
                     continue;
                 }
 
@@ -101,19 +108,6 @@ final class Lexer
                     continue;
                 }
 
-                // Data.
-                if ($this->is('.')) {
-                    yield new DataDotToken($this->cursor);
-                    $this->consume();
-                    $dataFieldMatches = $this->isPregMatch('/^([a-zA-Z0-9]+)/');
-                    if ($dataFieldMatches) {
-                        $dataField = $dataFieldMatches[0];
-                        yield new DataFieldToken($this->cursor, $dataField);
-                        $this->consume(\strlen($dataField));
-                    }
-                    continue;
-                }
-
                 // Operators.
                 $operatorTokenValue = $this->isOneOf(array_map(
                     fn(Operator $operator) => $operator->token,
@@ -121,7 +115,23 @@ final class Lexer
                 ));
                 if ($operatorTokenValue) {
                     yield new OperatorToken($this->cursor, Operator::operator($operatorTokenValue));
-                    $this->consume(\strlen($operatorTokenValue));
+                    $this->consume(strlen($operatorTokenValue));
+                    continue;
+                }
+
+                // Data.
+                $dataMatches = $this->isPregMatch('/^([a-zA-Z0-9]+)/');
+                if ($dataMatches) {
+                    [$dataSource, $dataValue] = $dataMatches;
+                    yield new NameToken($this->cursor, $dataValue);
+                    $this->consume(strlen($dataSource));
+                    continue;
+                }
+
+                // Fields.
+                if ($this->is('.')) {
+                    yield new NamespaceToken($this->cursor);
+                    $this->consume();
                     continue;
                 }
 
@@ -135,47 +145,9 @@ final class Lexer
         }
     }
 
-    /**
-     * @param list<string> $sourceNeedles
-     */
-    private function isOneOf(array $sourceNeedles): ?string
-    {
-        $source = \mb_substr($this->source, $this->cursor);
-        foreach ($sourceNeedles as $sourceNeedle) {
-            if (str_starts_with($source, $sourceNeedle)) {
-                return $sourceNeedle;
-            }
-        }
-        return null;
-    }
-
-    private function is(string $sourceNeedle): ?string
-    {
-        return str_starts_with(\mb_substr($this->source, $this->cursor), $sourceNeedle) ? $sourceNeedle : null;
-    }
-
     private function isWhitespace(): bool
     {
         return str_contains(' ', $this->current());
-    }
-
-    /**
-     * @return list<string>|null
-     */
-    private function isPregMatch(string $pattern, bool $offset = false): ?array
-    {
-        $matches = [];
-        $match = preg_match(
-            $pattern,
-            $offset ? $this->source : mb_substr($this->source, $this->cursor),
-            $matches,
-            0,
-            $offset ? $this->cursor : 0,
-        );
-        if (false === $match) {
-            throw new \RuntimeException(\preg_last_error_msg());
-        }
-        return 1 === $match ? $matches : null;
     }
 
     private function current(): string
@@ -198,5 +170,43 @@ final class Lexer
             }
         }
         return $value;
+    }
+
+    /**
+     * @param list<string> $sourceNeedles
+     */
+    private function isOneOf(array $sourceNeedles): ?string
+    {
+        $source = mb_substr($this->source, $this->cursor);
+        foreach ($sourceNeedles as $sourceNeedle) {
+            if (str_starts_with($source, $sourceNeedle)) {
+                return $sourceNeedle;
+            }
+        }
+        return null;
+    }
+
+    private function is(string $sourceNeedle): ?string
+    {
+        return str_starts_with(mb_substr($this->source, $this->cursor), $sourceNeedle) ? $sourceNeedle : null;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function isPregMatch(string $pattern, bool $offset = false): ?array
+    {
+        $matches = [];
+        $match = preg_match(
+            $pattern,
+            $offset ? $this->source : mb_substr($this->source, $this->cursor),
+            $matches,
+            0,
+            $offset ? $this->cursor : 0,
+        );
+        if (false === $match) {
+            throw new RuntimeException(preg_last_error_msg());
+        }
+        return 1 === $match ? $matches : null;
     }
 }

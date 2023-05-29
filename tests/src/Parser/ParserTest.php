@@ -4,30 +4,34 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Tests\Parser;
 
+use Bartfeenstra\Nel\Lexer\BooleanToken;
+use Bartfeenstra\Nel\Lexer\IntegerToken;
 use Bartfeenstra\Nel\Lexer\ListCloseToken;
 use Bartfeenstra\Nel\Lexer\ListOpenToken;
-use Bartfeenstra\Nel\Lexer\BooleanToken;
-use Bartfeenstra\Nel\Lexer\DataDotToken;
-use Bartfeenstra\Nel\Lexer\DataFieldToken;
-use Bartfeenstra\Nel\Lexer\IntegerToken;
+use Bartfeenstra\Nel\Lexer\NamespaceToken;
+use Bartfeenstra\Nel\Lexer\NameToken;
 use Bartfeenstra\Nel\Lexer\NullToken;
 use Bartfeenstra\Nel\Lexer\OperatorToken;
 use Bartfeenstra\Nel\Lexer\SeparatorToken;
 use Bartfeenstra\Nel\Lexer\StringToken;
 use Bartfeenstra\Nel\Lexer\WhitespaceToken;
 use Bartfeenstra\Nel\Operator\AddOperator;
-use Bartfeenstra\Nel\Operator\IsOperator;
+use Bartfeenstra\Nel\Operator\ContainsOperator;
+use Bartfeenstra\Nel\Operator\InOperator;
 use Bartfeenstra\Nel\Operator\MultiplyOperator;
 use Bartfeenstra\Nel\Operator\NotOperator;
 use Bartfeenstra\Nel\Parser\BinaryOperatorExpression;
 use Bartfeenstra\Nel\Parser\BooleanExpression;
 use Bartfeenstra\Nel\Parser\DataExpression;
+use Bartfeenstra\Nel\Parser\FieldExpression;
 use Bartfeenstra\Nel\Parser\IntegerExpression;
 use Bartfeenstra\Nel\Parser\ListExpression;
 use Bartfeenstra\Nel\Parser\NullExpression;
 use Bartfeenstra\Nel\Parser\Parser;
 use Bartfeenstra\Nel\Parser\StringExpression;
 use Bartfeenstra\Nel\Parser\UnaryOperatorExpression;
+use Bartfeenstra\Nel\Type\IntegerType;
+use Bartfeenstra\Nel\Type\StructType;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -174,41 +178,54 @@ final class ParserTest extends TestCase
         );
     }
 
-    public function testParseDataDot(): void {
-        $sut = new Parser([
-            new DataDotToken(0),
+    public function testParseData(): void
+    {
+        $dataType = new IntegerType();
+        $parserDataType = new StructType('foo', [
+            'foo' => $dataType,
         ]);
+        $sut = new Parser([
+            new NameToken(0, 'foo'),
+        ], $parserDataType);
         $this->assertEquals(
-            new DataExpression([]),
+            new DataExpression($dataType, 'foo'),
             $sut->parse(),
         );
     }
 
-    public function testParseDataDotAndField(): void {
-        $sut = new Parser([
-            new DataDotToken(0),
-            new DataFieldToken(1, 'foo'),
+    public function testParseFields(): void
+    {
+        $bazType = new IntegerType();
+        $barType = new StructType('bar', [
+            'baz' => $bazType,
         ]);
+        $fooType = new StructType('foo', [
+            'bar' => $barType,
+        ]);
+        $dataType = new StructType('data', [
+            'foo' => $fooType,
+        ]);
+        $sut = new Parser([
+            new NameToken(0, 'foo'),
+            new NamespaceToken(3),
+            new NameToken(4, 'bar'),
+            new NamespaceToken(7),
+            new NameToken(8, 'baz'),
+        ], $dataType);
         $this->assertEquals(
-            new DataExpression(['foo']),
+            new FieldExpression(
+                new FieldExpression(
+                    new DataExpression($fooType, 'foo'),
+                    'bar',
+                ),
+                'baz'
+            ),
             $sut->parse(),
         );
     }
 
-    public function testParseDataDotAndNestedFields(): void {
-        $sut = new Parser([
-            new DataDotToken(0),
-            new DataFieldToken(1, 'foo'),
-            new DataDotToken(4),
-            new DataFieldToken(5, 'bar'),
-        ]);
-        $this->assertEquals(
-            new DataExpression(['foo', 'bar']),
-            $sut->parse(),
-        );
-    }
-
-    public function testParseEmptyList(): void {
+    public function testParseEmptyList(): void
+    {
         $sut = new Parser([
             new ListOpenToken(0),
             new ListCloseToken(1),
@@ -219,7 +236,8 @@ final class ParserTest extends TestCase
         );
     }
 
-    public function testParseEmptyListWithSeparators(): void {
+    public function testParseEmptyListWithSeparators(): void
+    {
         $sut = new Parser([
             new ListOpenToken(0),
             new SeparatorToken(1),
@@ -233,7 +251,8 @@ final class ParserTest extends TestCase
         );
     }
 
-    public function testParseListWithSingleValue(): void {
+    public function testParseListWithSingleValue(): void
+    {
         $sut = new Parser([
             new ListOpenToken(0),
             new IntegerToken(1, 123),
@@ -247,7 +266,8 @@ final class ParserTest extends TestCase
         );
     }
 
-    public function testParseListWithMultipleValues(): void {
+    public function testParseListWithMultipleValues(): void
+    {
         $sut = new Parser([
             new ListOpenToken(0),
             new IntegerToken(1, 123),
@@ -259,12 +279,13 @@ final class ParserTest extends TestCase
             new ListExpression([
                 new IntegerExpression(123),
                 new IntegerExpression(456),
-                ]),
+            ]),
             $sut->parse(),
         );
     }
 
-    public function testParseListWithMultipleValuesAndWhitespace(): void {
+    public function testParseListWithMultipleValuesAndWhitespace(): void
+    {
         $sut = new Parser([
             new ListOpenToken(0),
             new WhitespaceToken(1, ' '),
@@ -280,7 +301,49 @@ final class ParserTest extends TestCase
             new ListExpression([
                 new IntegerExpression(123),
                 new IntegerExpression(456),
+            ]),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseListAndContainsOperator(): void
+    {
+        $sut = new Parser([
+            new ListOpenToken(0),
+            new IntegerToken(1, 123),
+            new ListCloseToken(4),
+            new OperatorToken(5, ContainsOperator::get()),
+            new IntegerToken(1, 123),
+        ]);
+        $this->assertEquals(
+            new BinaryOperatorExpression(
+                ContainsOperator::get(),
+                new ListExpression([
+                    new IntegerExpression(123),
                 ]),
+                new IntegerExpression(123),
+            ),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseListAndInOperator(): void
+    {
+        $sut = new Parser([
+            new IntegerToken(1, 123),
+            new OperatorToken(4, InOperator::get()),
+            new ListOpenToken(5),
+            new IntegerToken(6, 123),
+            new ListCloseToken(9),
+        ]);
+        $this->assertEquals(
+            new BinaryOperatorExpression(
+                InOperator::get(),
+                new IntegerExpression(123),
+                new ListExpression([
+                    new IntegerExpression(123),
+                ]),
+            ),
             $sut->parse(),
         );
     }

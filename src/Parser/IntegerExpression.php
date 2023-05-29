@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Parser;
 
-use Bartfeenstra\Nel\Type;
+use Bartfeenstra\Nel\Type\IntegerType;
+use Bartfeenstra\Nel\Type\Type;
 
 final class IntegerExpression implements Expression
 {
@@ -15,6 +16,6 @@ final class IntegerExpression implements Expression
 
     public function type(): Type
     {
-        return Type::INTEGER;
+        return new IntegerType();
     }
 }
