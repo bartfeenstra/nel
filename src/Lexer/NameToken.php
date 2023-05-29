@@ -7,9 +7,11 @@ namespace Bartfeenstra\Nel\Lexer;
 final class NameToken extends Token
 {
     public function __construct(
-        int $cursor,
+        string $source,
+        int $line,
+        int $column,
         public readonly string $name,
     ) {
-        parent::__construct($cursor);
+        parent::__construct($source, $line, $column);
     }
 }

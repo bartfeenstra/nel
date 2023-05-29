@@ -9,15 +9,17 @@ use RuntimeException;
 final class SyntaxError extends RuntimeException
 {
     public function __construct(
+        public readonly string $source,
+        public readonly int $sourceLine,
+        public readonly int $sourceColumn,
         public readonly string $tokenValue,
-        public readonly int $cursor,
-        public readonly string $source
     ) {
         parent::__construct(sprintf(
-            'Unexpected character "%s" at position %d of "%s".',
-            $this->tokenValue,
-            $this->cursor,
-            $this->source,
+            "Unexpected character \"%s\" on line %d, at column %d of:\n`%s`",
+            $tokenValue,
+            $sourceLine,
+            $sourceColumn,
+            $source,
         ));
     }
 }

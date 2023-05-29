@@ -43,7 +43,14 @@ final class Parser
 
     public function parse(): ?Expression
     {
-        return $this->tokens ? $this->parseExpression() : null;
+        if (!$this->tokens) {
+            return null;
+        }
+        $expression = $this->parseExpression();
+        if (!$this->endOfFile) {
+            $this->error('Unexpected token.');
+        }
+        return $expression;
     }
 
     private function parseExpression(int $precedence = 0): ?Expression
@@ -79,10 +86,12 @@ final class Parser
         } elseif ($this->is(NameToken::class)) {
             /** @var NameToken $token */
             $token = $this->consume();
-            if (!$this->dataType or !array_key_exists($token->name, $this->dataType->fields)) {
-                throw new ParseError(sprintf('No data with name "%s" exists in this context.', $token->name));
+            $dataType = $this->dataType;
+            if (!$dataType or !array_key_exists($token->name, $dataType->fields)) {
+                $this->error(sprintf('No data with name "%s" exists in this context.', $token->name));
             }
-            $expression = new DataExpression($this->dataType->fieldType($token->name), $token->name);
+            /** @var StructType $dataType */
+            $expression = new DataExpression($dataType->fieldType($token->name), $token->name);
         } elseif ($this->is(ListOpenToken::class)) {
             $this->consume();
             $values = [];
@@ -99,7 +108,7 @@ final class Parser
             if ($this->is(ListCloseToken::class)) {
                 $this->consume();
             } else {
-                throw new ParseError('List was not closed.');
+                $this->error('List was not closed.');
             }
             $expression = new ListExpression($values);
         }
@@ -107,12 +116,14 @@ final class Parser
         while (!$this->endOfFile and $this->is(NamespaceToken::class)) {
             $this->consume();
             if (!$expression) {
-                throw new ParseError('Operator "." expects a left operand, but found nothing.');
+                $this->error('Operator "." expects a left operand, but found nothing.');
             }
             $nameToken = $this->consume();
             if (!($nameToken instanceof NameToken)) {
-                throw new ParseError('Operator "." must be followed by a field name');
+                $this->error('Operator "." must be followed by a field name');
             }
+            /** @var Expression $expression */
+            /** @var NameToken $nameToken */
             $expression = new FieldExpression($expression, $nameToken->name);
         }
 
@@ -123,7 +134,7 @@ final class Parser
             $operator = $token->operator;
             if ($operator instanceof BinaryOperator and $operator->precedence > $precedence) {
                 if (!$expression) {
-                    throw new ParseError(sprintf(
+                    $this->error(sprintf(
                         'Operator "%s" expects a left operand, but found nothing.',
                         $operator->token,
                     ));
@@ -147,6 +158,12 @@ final class Parser
         }
 
         return $expression;
+    }
+
+    private function error(string $message): void
+    {
+        $token = $this->endOfFile ? null : $this->current();
+        throw new ParseError($token, $message);
     }
 
     private function is(string $type): bool
@@ -177,7 +194,7 @@ final class Parser
         $expression = $this->parseExpression($precedence);
         if ($expression) {
             if ($type and !($expression->type() instanceof $type)) {
-                throw new ParseError(sprintf(
+                $this->error(sprintf(
                     'Expected a %s expression, but found %s instead.',
                     $type,
                     $expression->type(),
@@ -186,11 +203,11 @@ final class Parser
             return $expression;
         }
         if ($type) {
-            throw new ParseError(sprintf(
+            $this->error(sprintf(
                 'Expected a %s expression, but found nothing.',
                 $type,
             ));
         }
-        throw new ParseError('Expected another expression, but found nothing.');
+        $this->error('Expected another expression, but found nothing.');
     }
 }

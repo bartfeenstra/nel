@@ -9,10 +9,12 @@ use Bartfeenstra\Nel\Parser\StringExpression;
 final class StringToken extends Token implements ExpressionFactoryToken
 {
     public function __construct(
-        int $cursor,
+        string $source,
+        int $line,
+        int $column,
         public readonly string $value,
     ) {
-        parent::__construct($cursor);
+        parent::__construct($source, $line, $column);
     }
 
     public function expression(): StringExpression
