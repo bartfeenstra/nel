@@ -24,6 +24,10 @@ abstract class Operator
     public static function get(): self
     {
         if (!in_array(static::class, static::$instances)) {
+            /**
+             * @psalm-suppress TooFewArguments
+             * @psalm-suppress UnsafeInstantiation
+             */
             static::$instances[static::class] = new static();
         }
         return static::$instances[static::class];

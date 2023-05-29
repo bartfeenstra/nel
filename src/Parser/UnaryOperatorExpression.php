@@ -18,7 +18,7 @@ final class UnaryOperatorExpression extends OperatorExpression
         if (Type::BOOLEAN !== $this->operand->type()) {
             throw new ParseError(sprintf(
                 'Operator "%s" expects its operand to yield a boolean, but instead it yields %s.',
-                $this->operator->value,
+                $this->operator->token,
                 $this->operand->type()->value,
             ));
         }
