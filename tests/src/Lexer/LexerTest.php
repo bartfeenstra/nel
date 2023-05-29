@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Bartfeenstra\Nel\Tests\Lexer;
 
 use Bartfeenstra\Nel\Lexer\BooleanToken;
+use Bartfeenstra\Nel\Lexer\DataDotToken;
+use Bartfeenstra\Nel\Lexer\DataFieldToken;
 use Bartfeenstra\Nel\Lexer\IntegerToken;
 use Bartfeenstra\Nel\Lexer\Lexer;
 use Bartfeenstra\Nel\Lexer\NullToken;
@@ -63,6 +65,20 @@ final class LexerTest extends TestCase
             [[
                 new IntegerToken(0, 123),
             ], '123'],
+            // Fields.
+            [[
+                new DataDotToken(0),
+            ], '.'],
+            [[
+                new DataDotToken(0),
+                new DataFieldToken(1, 'foo'),
+            ], '.foo'],
+            [[
+                new DataDotToken(0),
+                new DataFieldToken(1, 'foo'),
+                new DataDotToken(4),
+                new DataFieldToken(5, 'bar'),
+            ], '.foo.bar'],
             // Operators.
             [[
                 new OperatorToken(0, StartsWithOperator::get()),

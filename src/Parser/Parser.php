@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Bartfeenstra\Nel\Parser;
 
 use Bartfeenstra\Nel\EndOfFile;
+use Bartfeenstra\Nel\Lexer\DataDotToken;
+use Bartfeenstra\Nel\Lexer\DataFieldToken;
 use Bartfeenstra\Nel\Lexer\DoNotParseToken;
 use Bartfeenstra\Nel\Lexer\ExpressionFactoryToken;
 use Bartfeenstra\Nel\Lexer\OperatorToken;
@@ -44,13 +46,14 @@ final class Parser
 
         if ($this->is(DoNotParseToken::class)) {
             $this->consume();
-            try {
-                while ($this->is(DoNotParseToken::class)) {
-                    $this->consume();
-                }
-            } catch (EndOfFile) {
-                return null;
+            /** @phpstan-ignore-next-line */
+            while (!$this->endOfFile and $this->is(DoNotParseToken::class)) {
+                $this->consume();
             }
+        }
+
+        if ($this->endOfFile) {
+            return $expression;
         }
 
         if ($this->is(ExpressionFactoryToken::class)) {
@@ -68,9 +71,25 @@ final class Parser
                     $this->expectExpression(),
                 );
             }
+        } elseif ($this->is(DataDotToken::class)) {
+            $fields = [];
+            /** @phpstan-ignore-next-line */
+            while (!$this->endOfFile and $this->is(DataDotToken::class)) {
+                /** @var DataDotToken $token */
+                $this->consume();
+                /** @phpstan-ignore-next-line */
+                if (!$this->endOfFile and $this->is(DataFieldToken::class)) {
+                    /** @var DataFieldToken $token */
+                    $token = $this->consume();
+                    $fields[] = $token->field;
+                }
+            }
+            /** @phpstan-ignore-next-line */
+            $expression = new DataExpression($fields);
         }
 
         // Finally, parse binary operators and see if they take the parsed expression as a left operand.
+        /** @phpstan-ignore-next-line */
         while (!$this->endOfFile and $this->is(OperatorToken::class)) {
             /** @var OperatorToken $token */
             $token = $this->current();
