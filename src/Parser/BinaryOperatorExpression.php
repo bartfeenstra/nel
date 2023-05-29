@@ -4,26 +4,18 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Parser;
 
-use Bartfeenstra\Nel\Operator\Operator;
-use Bartfeenstra\Nel\ParseError;
-use Bartfeenstra\Nel\Type;
+use Bartfeenstra\Nel\Operator\BinaryOperator;
+use Bartfeenstra\Nel\Type\Type;
 
 final class BinaryOperatorExpression extends OperatorExpression
 {
     public function __construct(
-        Operator $operator,
+        BinaryOperator $operator,
         public readonly Expression $leftOperand,
         public readonly Expression $rightOperand,
     ) {
         parent::__construct($operator);
-        if ($this->leftOperand->type() !== $this->rightOperand->type()) {
-            throw new ParseError(sprintf(
-                'Operator "%s" expects its operands to be of the same type, but instead they yield %s and %s.',
-                $this->operator->token,
-                $this->leftOperand->type()->value,
-                $this->rightOperand->type()->value,
-            ));
-        }
+        $operator->validateOperands($leftOperand, $rightOperand);
     }
 
     public function type(): Type

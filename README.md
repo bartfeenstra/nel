@@ -10,12 +10,13 @@ Nel is an expression parser that turns a string into an [AST](https://en.wikiped
 
 ## Syntax
 - whitespace-insensitive
-- literals
-  - boolean: `true` and `false`
-  - null: `null`
+- strict typing
+  - `true` and `false`
+  - `null`
   - strings: `'string'` or `"string"`
   - integers: `123`
   - lists: `[123, 456]`
+  - structs with fields
 - unary operators
   - `not`
 - binary operators
@@ -35,7 +36,7 @@ Nel is an expression parser that turns a string into an [AST](https://en.wikiped
   - `add`
   - `sub`
   - `mul`
-- data access
-  - `.` for the root data (a scalar or a struct)
-  - `.foo` for the `foo` field on the root data struct
-  - `.foo.bar` for the `bar` field on the struct contained by the `foo` field on the root data struct
+- data and fields
+  - `foo` for the global `foo` data
+  - `foo.bar` for the `bar` field on the root data
+  - `foo.bar.baz` for the `baz` field on the `bar` field on the root data

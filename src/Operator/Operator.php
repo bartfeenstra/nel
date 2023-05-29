@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Operator;
 
-use Bartfeenstra\Nel\Type;
+use Bartfeenstra\Nel\Type\Type;
+use InvalidArgumentException;
 
 abstract class Operator
 {
@@ -19,19 +20,14 @@ abstract class Operator
     ) {
     }
 
-    abstract public function type(): Type;
-
-    public static function get(): self
+    public static function operator(string $token): Operator
     {
-        if (!in_array(static::class, self::$instances)) {
-            /**
-             * @psalm-suppress TooFewArguments
-             * @psalm-suppress UnsafeInstantiation
-             * @phpstan-ignore-next-line
-             */
-            self::$instances[static::class] = new static();
+        foreach (static::operators() as $operator) {
+            if ($token === $operator->token) {
+                return $operator;
+            }
         }
-        return self::$instances[static::class];
+        throw new InvalidArgumentException(sprintf('Unknown operator with token "%s".', $token));
     }
 
     /**
@@ -59,13 +55,19 @@ abstract class Operator
         ];
     }
 
-    public static function operator(string $token): Operator
+    public static function get(): static
     {
-        foreach (static::operators() as $operator) {
-            if ($token === $operator->token) {
-                return $operator;
-            }
+        if (!in_array(static::class, self::$instances)) {
+            /**
+             * @psalm-suppress TooFewArguments
+             * @psalm-suppress UnsafeInstantiation
+             * @phpstan-ignore-next-line
+             */
+            self::$instances[static::class] = new static();
         }
-        throw new \InvalidArgumentException(sprintf('Unknown operator with token "%s".', $token));
+        /** @phpstan-ignore-next-line */
+        return self::$instances[static::class];
     }
+
+    abstract public function type(): Type;
 }

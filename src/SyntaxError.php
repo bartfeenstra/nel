@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel;
 
-final class SyntaxError extends \RuntimeException
+use RuntimeException;
+
+final class SyntaxError extends RuntimeException
 {
     public function __construct(
         public readonly string $tokenValue,

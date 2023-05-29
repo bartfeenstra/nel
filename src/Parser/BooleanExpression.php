@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Parser;
 
-use Bartfeenstra\Nel\Type;
+use Bartfeenstra\Nel\Type\BooleanType;
+use Bartfeenstra\Nel\Type\Type;
 
 final class BooleanExpression implements Expression
 {
@@ -15,6 +16,6 @@ final class BooleanExpression implements Expression
 
     public function type(): Type
     {
-        return Type::BOOLEAN;
+        return new BooleanType();
     }
 }

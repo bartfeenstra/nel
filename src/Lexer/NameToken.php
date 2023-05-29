@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Lexer;
 
-final class DataFieldToken extends Token
+final class NameToken extends Token
 {
     public function __construct(
         int $cursor,
-        public readonly string $field,
+        public readonly string $name,
     ) {
         parent::__construct($cursor);
     }

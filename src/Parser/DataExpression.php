@@ -4,21 +4,18 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Parser;
 
-use Bartfeenstra\Nel\Type;
+use Bartfeenstra\Nel\Type\Type;
 
 final class DataExpression implements Expression
 {
-    /**
-     * @param list<string> $fields
-     */
     public function __construct(
-        public readonly array $fields,
+        private readonly Type $type,
+        public readonly string $name,
     ) {
     }
 
     public function type(): Type
     {
-        // @todo Revisit this. This depends on the input data...
-        return Type::NULL;
+        return $this->type;
     }
 }

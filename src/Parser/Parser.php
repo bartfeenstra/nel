@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Bartfeenstra\Nel\Parser;
 
 use Bartfeenstra\Nel\EndOfFile;
-use Bartfeenstra\Nel\Lexer\DataDotToken;
-use Bartfeenstra\Nel\Lexer\DataFieldToken;
 use Bartfeenstra\Nel\Lexer\DoNotParseToken;
 use Bartfeenstra\Nel\Lexer\ExpressionFactoryToken;
 use Bartfeenstra\Nel\Lexer\ListCloseToken;
 use Bartfeenstra\Nel\Lexer\ListOpenToken;
+use Bartfeenstra\Nel\Lexer\NamespaceToken;
+use Bartfeenstra\Nel\Lexer\NameToken;
 use Bartfeenstra\Nel\Lexer\OperatorToken;
 use Bartfeenstra\Nel\Lexer\SeparatorToken;
 use Bartfeenstra\Nel\Lexer\Token;
@@ -18,6 +18,8 @@ use Bartfeenstra\Nel\Operator\Associativity;
 use Bartfeenstra\Nel\Operator\BinaryOperator;
 use Bartfeenstra\Nel\Operator\UnaryOperator;
 use Bartfeenstra\Nel\ParseError;
+use Bartfeenstra\Nel\Type\StructType;
+use Bartfeenstra\Nel\Type\Type;
 
 final class Parser
 {
@@ -28,10 +30,11 @@ final class Parser
     private bool $endOfFile;
 
     /**
-     * @param list<\Bartfeenstra\Nel\Lexer\Token> $tokens
+     * @param list<Token> $tokens
      */
     public function __construct(
-        public readonly array $tokens,
+        private readonly array $tokens,
+        private readonly ?StructType $dataType = null,
     ) {
         $this->cursor = 0;
         $this->end = count($this->tokens);
@@ -73,20 +76,13 @@ final class Parser
                     $this->expectExpression(),
                 );
             }
-        } elseif ($this->is(DataDotToken::class)) {
-            $fields = [];
-            /** @phpstan-ignore-next-line */
-            while (!$this->endOfFile and $this->is(DataDotToken::class)) {
-                /** @var DataDotToken $token */
-                $this->consume();
-                /** @phpstan-ignore-next-line */
-                if (!$this->endOfFile and $this->is(DataFieldToken::class)) {
-                    /** @var DataFieldToken $token */
-                    $token = $this->consume();
-                    $fields[] = $token->field;
-                }
+        } elseif ($this->is(NameToken::class)) {
+            /** @var NameToken $token */
+            $token = $this->consume();
+            if (!$this->dataType or !array_key_exists($token->name, $this->dataType->fields)) {
+                throw new ParseError(sprintf('No data with name "%s" exists in this context.', $token->name));
             }
-            $expression = new DataExpression($fields);
+            $expression = new DataExpression($this->dataType->fieldType($token->name), $token->name);
         } elseif ($this->is(ListOpenToken::class)) {
             $this->consume();
             $values = [];
@@ -108,6 +104,18 @@ final class Parser
             $expression = new ListExpression($values);
         }
 
+        while (!$this->endOfFile and $this->is(NamespaceToken::class)) {
+            $this->consume();
+            if (!$expression) {
+                throw new ParseError('Operator "." expects a left operand, but found nothing.');
+            }
+            $nameToken = $this->consume();
+            if (!($nameToken instanceof NameToken)) {
+                throw new ParseError('Operator "." must be followed by a field name');
+            }
+            $expression = new FieldExpression($expression, $nameToken->name);
+        }
+
         // Finally, parse binary operators and see if they take the parsed expression as a left operand.
         while (!$this->endOfFile and $this->is(OperatorToken::class)) {
             /** @var OperatorToken $token */
@@ -123,10 +131,10 @@ final class Parser
                 $this->consume();
                 $rightOperand = $this->expectExpression(
                     Associativity::LEFT === $operator->associativity
-                    ?
-                    $operator->precedence + 1
-                    :
-                    $operator->precedence,
+                        ?
+                        $operator->precedence + 1
+                        :
+                        $operator->precedence,
                 );
                 $expression = new BinaryOperatorExpression(
                     $operator,
@@ -139,15 +147,6 @@ final class Parser
         }
 
         return $expression;
-    }
-
-    private function expectExpression(int $precedence = 0): Expression
-    {
-        $expression = $this->parseExpression($precedence);
-        if ($expression) {
-            return $expression;
-        }
-        throw new ParseError('Expected another expression, but found nothing.');
     }
 
     private function is(string $type): bool
@@ -171,5 +170,27 @@ final class Parser
             $this->endOfFile = true;
         }
         return $token;
+    }
+
+    private function expectExpression(int $precedence = 0, Type|string|null $type = null): Expression
+    {
+        $expression = $this->parseExpression($precedence);
+        if ($expression) {
+            if ($type and !($expression->type() instanceof $type)) {
+                throw new ParseError(sprintf(
+                    'Expected a %s expression, but found %s instead.',
+                    $type,
+                    $expression->type(),
+                ));
+            }
+            return $expression;
+        }
+        if ($type) {
+            throw new ParseError(sprintf(
+                'Expected a %s expression, but found nothing.',
+                $type,
+            ));
+        }
+        throw new ParseError('Expected another expression, but found nothing.');
     }
 }

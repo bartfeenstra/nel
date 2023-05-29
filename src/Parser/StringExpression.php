@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Parser;
 
-use Bartfeenstra\Nel\Type;
+use Bartfeenstra\Nel\Type\StringType;
+use Bartfeenstra\Nel\Type\Type;
 
 final class StringExpression implements Expression
 {
@@ -15,6 +16,6 @@ final class StringExpression implements Expression
 
     public function type(): Type
     {
-        return Type::STRING;
+        return new StringType();
     }
 }
