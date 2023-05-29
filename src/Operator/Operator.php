@@ -55,6 +55,7 @@ abstract class Operator
             NotOperator::get(),
             AddOperator::get(),
             SubtractOperator::get(),
+            MultiplyOperator::get(),
         ];
     }
 
