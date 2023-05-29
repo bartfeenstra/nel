@@ -29,6 +29,9 @@ use PHPUnit\Framework\TestCase;
  */
 final class LexerTest extends TestCase
 {
+    /**
+     * @return non-empty-list<array{0: list<\Bartfeenstra\Nel\Lexer\Token>, 1: string}>
+     */
     public static function provideTokenize() : array {
         return [
             // An empty source.
@@ -98,6 +101,7 @@ final class LexerTest extends TestCase
     }
 
     /**
+     * @param array<int, \Bartfeenstra\Nel\Lexer\Token> $expectedTokens
      * @dataProvider provideTokenize
      */
     public function testTokenize(array $expectedTokens, string $source): void

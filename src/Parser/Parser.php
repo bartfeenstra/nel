@@ -22,6 +22,9 @@ final class Parser
 
     private bool $endOfFile;
 
+    /**
+     * @param list<\Bartfeenstra\Nel\Lexer\Token> $tokens
+     */
     public function __construct(
         public readonly array $tokens,
     ) {

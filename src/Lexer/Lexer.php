@@ -22,8 +22,8 @@ final class Lexer
         $this->endOfFile = false;
     }
 
-    /*
-     * @throws SyntaxError
+    /**
+     * @return \Traversable<int, Token>
      */
     public function tokenize(): \Traversable
     {
@@ -104,6 +104,9 @@ final class Lexer
         }
     }
 
+    /**
+     * @param list<string> $sourceNeedles
+     */
     private function isOneOf(array $sourceNeedles): ?string
     {
         $source = \mb_substr($this->source, $this->cursor);
@@ -125,14 +128,18 @@ final class Lexer
         return str_contains(' ', $this->current());
     }
 
+    /**
+     * @return array{0: string, 1: string}|null
+     */
     private function isPregMatch(string $pattern): ?array
     {
         $matches = [];
         $match = preg_match($pattern, $this->source, $matches, 0, $this->cursor);
+        /** @var array{0: string, 1: string}|array{} $matches */
         if (false === $match) {
             throw new \RuntimeException(\preg_last_error_msg());
         }
-        return 1 === $match ? $matches : null;
+        return (1 === $match and $matches) ? $matches : null;
     }
 
     private function current(): string

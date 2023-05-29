@@ -23,16 +23,20 @@ abstract class Operator
 
     public static function get(): self
     {
-        if (!in_array(static::class, static::$instances)) {
+        if (!in_array(static::class, self::$instances)) {
             /**
              * @psalm-suppress TooFewArguments
              * @psalm-suppress UnsafeInstantiation
+             * @phpstan-ignore-next-line
              */
-            static::$instances[static::class] = new static();
+            self::$instances[static::class] = new static();
         }
-        return static::$instances[static::class];
+        return self::$instances[static::class];
     }
 
+    /**
+     * @return non-empty-list<Operator>
+     */
     public static function operators(): array
     {
         return [

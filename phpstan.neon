@@ -1,0 +1,7 @@
+parameters:
+	level: 9
+	paths:
+		- src
+		- tests/src
+	ignoreErrors:
+	    - '#While loop condition is always true#'
