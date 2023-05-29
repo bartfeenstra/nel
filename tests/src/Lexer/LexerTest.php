@@ -27,6 +27,7 @@ use Bartfeenstra\Nel\Operator\IsLessThanOrEqualsOperator;
 use Bartfeenstra\Nel\Operator\IsOperator;
 use Bartfeenstra\Nel\Operator\OrOperator;
 use Bartfeenstra\Nel\Operator\StartsWithOperator;
+use Bartfeenstra\Nel\SyntaxError;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -44,106 +45,106 @@ final class LexerTest extends TestCase
             [[], ''],
             // A single whitespace.
             [[
-                new WhitespaceToken(0, ' '),
+                new WhitespaceToken(' ', 0, 0, ' '),
             ], ' '],
             // Multiple whitespaces.
             [[
-                new WhitespaceToken(0, '   '),
+                new WhitespaceToken('   ', 0, 0, '   '),
             ], '   '],
             // Booleans.
             [[
-                new BooleanToken(0, true),
+                new BooleanToken('true', 0, 0, true),
             ], 'true'],
             [[
-                new BooleanToken(0, false),
+                new BooleanToken('false', 0, 0, false),
             ], 'false'],
             // Null.
             [[
-                new NullToken(0),
+                new NullToken('null', 0, 0),
             ], 'null'],
             // A string.
             [[
-                new StringToken(0, '123'),
+                new StringToken('"123"', 0, 0, '123'),
             ], '"123"'],
             // An integer.
             [[
-                new IntegerToken(0, 123),
+                new IntegerToken('123', 0, 0, 123),
             ], '123'],
             // Lists.
             [[
-                new ListOpenToken(0),
-                new ListCloseToken(1),
+                new ListOpenToken('[]', 0, 0),
+                new ListCloseToken('[]', 0, 1),
             ], '[]'],
             [[
-                new ListOpenToken(0),
-                new IntegerToken(1, 123),
-                new ListCloseToken(4),
+                new ListOpenToken('[123]', 0, 0),
+                new IntegerToken('[123]', 0, 1, 123),
+                new ListCloseToken('[123]', 0, 4),
             ], '[123]'],
             [[
-                new ListOpenToken(0),
-                new IntegerToken(1, 123),
-                new SeparatorToken(4),
-                new WhitespaceToken(5, ' '),
-                new IntegerToken(6, 456),
-                new ListCloseToken(9),
+                new ListOpenToken('[123, 456]', 0, 0),
+                new IntegerToken('[123, 456]', 0, 1, 123),
+                new SeparatorToken('[123, 456]', 0, 4),
+                new WhitespaceToken('[123, 456]', 0, 5, ' '),
+                new IntegerToken('[123, 456]', 0, 6, 456),
+                new ListCloseToken('[123, 456]', 0, 9),
             ], '[123, 456]'],
             [[
-                new ListOpenToken(0),
-                new SeparatorToken(1),
-                new SeparatorToken(2),
-                new SeparatorToken(3),
-                new ListCloseToken(4),
+                new ListOpenToken('[,,,]', 0, 0),
+                new SeparatorToken('[,,,]', 0, 1),
+                new SeparatorToken('[,,,]', 0, 2),
+                new SeparatorToken('[,,,]', 0, 3),
+                new ListCloseToken('[,,,]', 0, 4),
             ], '[,,,]'],
             // Data.
             [[
-                new NameToken(0, 'foo'),
+                new NameToken('foo', 0, 0, 'foo'),
             ], 'foo'],
             // Fields.
             [[
-                new NameToken(0, 'foo'),
-                new NamespaceToken(3),
-                new NameToken(4, 'bar'),
+                new NameToken('foo.bar', 0, 0, 'foo'),
+                new NamespaceToken('foo.bar', 0, 3),
+                new NameToken('foo.bar', 0, 4, 'bar'),
             ], 'foo.bar'],
             [[
-                new NameToken(0, 'foo'),
-                new NamespaceToken(3),
-                new NameToken(4, 'bar'),
-                new NamespaceToken(7),
-                new NameToken(8, 'baz'),
+                new NameToken('foo.bar.baz', 0, 0, 'foo'),
+                new NamespaceToken('foo.bar.baz', 0, 3),
+                new NameToken('foo.bar.baz', 0, 4, 'bar'),
+                new NamespaceToken('foo.bar.baz', 0, 7),
+                new NameToken('foo.bar.baz', 0, 8, 'baz'),
             ], 'foo.bar.baz'],
             // Operators.
             [[
-                new OperatorToken(0, StartsWithOperator::get()),
+                new OperatorToken(StartsWithOperator::get()->token, 0, 0, StartsWithOperator::get()),
             ], StartsWithOperator::get()->token],
             [[
-                new OperatorToken(0, EndsWithOperator::get()),
+                new OperatorToken(EndsWithOperator::get()->token, 0, 0, EndsWithOperator::get()),
             ], EndsWithOperator::get()->token],
             [[
-                new OperatorToken(0, ContainsOperator::get()),
+                new OperatorToken(ContainsOperator::get()->token, 0, 0, ContainsOperator::get()),
             ], ContainsOperator::get()->token],
             [[
-                new OperatorToken(0, InOperator::get()),
+                new OperatorToken(InOperator::get()->token, 0, 0, InOperator::get()),
             ], InOperator::get()->token],
             [[
-                new OperatorToken(0, AndOperator::get()),
+                new OperatorToken(AndOperator::get()->token, 0, 0, AndOperator::get()),
             ], AndOperator::get()->token],
             [[
-                new OperatorToken(0, OrOperator::get()),
+                new OperatorToken(OrOperator::get()->token, 0, 0, OrOperator::get()),
             ], OrOperator::get()->token],
             [[
-                new OperatorToken(0, IsOperator::get()),
+                new OperatorToken(IsOperator::get()->token, 0, 0, IsOperator::get()),
             ], IsOperator::get()->token],
             [[
-                new OperatorToken(0, IsLessThanOrEqualsOperator::get()),
+                new OperatorToken(IsLessThanOrEqualsOperator::get()->token, 0, 0, IsLessThanOrEqualsOperator::get()),
             ], IsLessThanOrEqualsOperator::get()->token],
             [[
-                new OperatorToken(0, IsLessThanOperator::get()),
+                new OperatorToken(IsLessThanOperator::get()->token, 0, 0, IsLessThanOperator::get()),
             ], IsLessThanOperator::get()->token],
             [[
-                new OperatorToken(0, IsGreaterThanOrEqualsOperator::get()),
+                new OperatorToken(IsGreaterThanOrEqualsOperator::get()->token, 0, 0, IsGreaterThanOrEqualsOperator::get()),
             ], IsGreaterThanOrEqualsOperator::get()->token],
             [[
-                new OperatorToken(0, IsGreaterThanOperator::get()),
+                new OperatorToken(IsGreaterThanOperator::get()->token, 0, 0, IsGreaterThanOperator::get()),
             ], IsGreaterThanOperator::get()->token],
         ];
     }
@@ -156,5 +157,37 @@ final class LexerTest extends TestCase
     {
         $sut = new Lexer($source);
         $this->assertEquals($expectedTokens, \iterator_to_array($sut->tokenize()));
+    }
+
+    /**
+     * @return non-empty-list<array{0: int, 1: int, 2: string}>
+     */
+    public static function provideTokenizeShouldThrowSyntaxError(): array
+    {
+        return [
+            // A character that is not part of the syntax.
+            [0, 0, '_'],
+            [0, 0, '_'],
+        ];
+    }
+
+    /**
+     * @dataProvider provideTokenizeShouldThrowSyntaxError
+     */
+    public function testTokenizeShouldThrowSyntaxError(int $expectedLine, int $expectedColumn, string $source): void
+    {
+        $sut = new Lexer($source);
+        try {
+            iterator_to_array($sut->tokenize());
+        }
+        catch (SyntaxError $e) {
+            $this->assertSame($expectedLine, $e->sourceLine);
+            $this->assertSame($expectedColumn, $e->sourceColumn);
+            $this->assertSame($source, $e->source);
+            return;
+        }
+        // As odd as this looks, it means that while we check for the exception ourselves, we still throw the familiar
+        // PHPUnit error.
+        $this->expectException(SyntaxError::class);
     }
 }

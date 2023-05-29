@@ -9,10 +9,12 @@ use Bartfeenstra\Nel\Parser\BooleanExpression;
 final class BooleanToken extends Token implements ExpressionFactoryToken
 {
     public function __construct(
-        int $cursor,
+        string $source,
+        int $line,
+        int $column,
         public readonly bool $value,
     ) {
-        parent::__construct($cursor);
+        parent::__construct($source, $line, $column);
     }
 
     public function expression(): BooleanExpression

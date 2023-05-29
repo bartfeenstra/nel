@@ -23,7 +23,6 @@
         <PossiblyUnusedMethod errorLevel="suppress" />
         <PossiblyUnusedProperty errorLevel="suppress" />
         <UndefinedMethod errorLevel="error" />
-        <UndefinedPropertyFetch errorLevel="error" />
         <UnsafeInstantiation errorLevel="error" />
     </issueHandlers>
 </psalm>

@@ -28,14 +28,14 @@ final class ContainsOperator extends BinaryOperator
     public function validateOperands(Expression $leftOperand, Expression $rightOperand): void
     {
         if (!($leftOperand instanceof ListExpression)) {
-            throw new ParseError(sprintf(
+            throw new ParseError(null, sprintf(
                 'Operator "%s" expects its left operand to be a list, but instead it evaluates to %s.',
                 $this->token,
                 $leftOperand->type(),
             ));
         }
         if ($leftOperand->type()->itemType != $rightOperand->type()) {
-            throw new ParseError(sprintf(
+            throw new ParseError(null, sprintf(
                 'Operator "%s" expects its left operand to be %s, but instead it evaluates to %s.',
                 $this->token,
                 new ListType($rightOperand->type()),

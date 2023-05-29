@@ -18,6 +18,8 @@ use function strlen;
 final class Lexer
 {
     private int $cursor;
+    private int $line;
+    private int $column;
     private int $end;
     private bool $endOfFile;
 
@@ -25,6 +27,8 @@ final class Lexer
         public readonly string $source,
     ) {
         $this->cursor = 0;
+        $this->line = 0;
+        $this->column = 0;
         $this->end = mb_strlen($source);
         $this->endOfFile = false;
     }
@@ -38,17 +42,18 @@ final class Lexer
             while ($this->cursor < $this->end) {
                 // Whitespace.
                 if ($this->isWhitespace()) {
-                    $whitespaceStart = $this->cursor;
+                    $line = $this->line;
+                    $column = $this->column;
                     $whitespace = $this->consume();
                     // Combine consecutive whitespace into the same token.
-                    try {
-                        while ($this->isWhitespace()) {
-                            $whitespace .= $this->consume();
-                        }
-                    } catch (EndOfFile) {
+                    /** @phpstan-ignore-next-line */
+                    while (!$this->endOfFile and $this->isWhitespace()) {
+                        $whitespace .= $this->consume();
                     }
                     yield new WhitespaceToken(
-                        $whitespaceStart,
+                        $this->source,
+                        $line,
+                        $column,
                         $whitespace,
                     );
                     continue;
@@ -57,7 +62,12 @@ final class Lexer
                 // Booleans.
                 $boolean = $this->isOneOf(['true', 'false']);
                 if ($boolean) {
-                    yield new BooleanToken($this->cursor, 'true' === $boolean);
+                    yield new BooleanToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                        'true' === $boolean,
+                    );
                     $this->consume(strlen($boolean));
                     continue;
                 }
@@ -65,7 +75,11 @@ final class Lexer
                 // null.
                 $null = $this->is('null');
                 if ($null) {
-                    yield new NullToken($this->cursor);
+                    yield new NullToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                    );
                     $this->consume(4);
                     continue;
                 }
@@ -77,7 +91,12 @@ final class Lexer
                 );
                 if ($stringMatches) {
                     [$stringSource, $stringValue] = $stringMatches;
-                    yield new StringToken($this->cursor, $stringValue);
+                    yield new StringToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                        $stringValue,
+                    );
                     $this->consume(mb_strlen($stringSource));
                     continue;
                 }
@@ -86,24 +105,41 @@ final class Lexer
                 $integerMatches = $this->isPregMatch('/^(\d+)/');
                 if ($integerMatches) {
                     [$integerSource, $integerValue] = $integerMatches;
-                    yield new IntegerToken($this->cursor, (int)$integerValue);
+                    yield new IntegerToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                        (int) $integerValue,
+                    );
                     $this->consume(strlen($integerSource));
                     continue;
                 }
 
                 // Lists.
                 if ($this->is('[')) {
-                    yield new ListOpenToken($this->cursor);
+                    yield new ListOpenToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                    );
                     $this->consume();
                     continue;
                 }
                 if ($this->is(']')) {
-                    yield new ListCloseToken($this->cursor);
+                    yield new ListCloseToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                    );
                     $this->consume();
                     continue;
                 }
                 if ($this->is(',')) {
-                    yield new SeparatorToken($this->cursor);
+                    yield new SeparatorToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                    );
                     $this->consume();
                     continue;
                 }
@@ -114,7 +150,12 @@ final class Lexer
                     Operator::operators(),
                 ));
                 if ($operatorTokenValue) {
-                    yield new OperatorToken($this->cursor, Operator::operator($operatorTokenValue));
+                    yield new OperatorToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                        Operator::operator($operatorTokenValue),
+                    );
                     $this->consume(strlen($operatorTokenValue));
                     continue;
                 }
@@ -123,31 +164,50 @@ final class Lexer
                 $dataMatches = $this->isPregMatch('/^([a-zA-Z0-9]+)/');
                 if ($dataMatches) {
                     [$dataSource, $dataValue] = $dataMatches;
-                    yield new NameToken($this->cursor, $dataValue);
+                    yield new NameToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                        $dataValue,
+                    );
                     $this->consume(strlen($dataSource));
                     continue;
                 }
 
                 // Fields.
                 if ($this->is('.')) {
-                    yield new NamespaceToken($this->cursor);
+                    yield new NamespaceToken(
+                        $this->source,
+                        $this->line,
+                        $this->column,
+                    );
                     $this->consume();
                     continue;
                 }
 
-                throw new SyntaxError(
-                    $this->current(),
-                    $this->cursor,
-                    $this->source,
-                );
+                $this->error();
             }
         } catch (EndOfFile) {
         }
     }
 
+    private function error(): void
+    {
+        throw new SyntaxError(
+            $this->source,
+            $this->line,
+            $this->column,
+            $this->current(),
+        );
+    }
+
     private function isWhitespace(): bool
     {
-        return str_contains(' ', $this->current());
+        return str_contains(implode('', [
+            ' ',    // Space.
+            '	',  // Tab.
+            "\n",   // Newline.
+        ]), $this->current());
     }
 
     private function current(): string
@@ -155,6 +215,7 @@ final class Lexer
         if ($this->endOfFile) {
             throw new EndOfFile();
         }
+
         return $this->source[$this->cursor];
     }
 
@@ -162,11 +223,17 @@ final class Lexer
     {
         $value = '';
         while ($count) {
+            $currentValue = $this->current();
+            $value .= $currentValue;
             $count--;
-            $value .= $this->current();
             $this->cursor++;
+            $this->column++;
             if ($this->cursor === $this->end) {
                 $this->endOfFile = true;
+            }
+            if ("\n" === $currentValue) {
+                $this->line++;
+                $this->column = 0;
             }
         }
         return $value;

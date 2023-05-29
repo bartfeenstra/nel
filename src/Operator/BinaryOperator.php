@@ -23,7 +23,7 @@ abstract class BinaryOperator extends Operator
     public function validateOperands(Expression $leftOperand, Expression $rightOperand): void
     {
         if ($leftOperand->type() != ($this->leftOperandType)) {
-            throw new ParseError(sprintf(
+            throw new ParseError(null, sprintf(
                 'Operator "%s" expects its left operand to be %s, but instead it evaluates to %s.',
                 $this->token,
                 $this->leftOperandType,
@@ -31,7 +31,7 @@ abstract class BinaryOperator extends Operator
             ));
         }
         if ($rightOperand->type() != ($this->rightOperandType)) {
-            throw new ParseError(sprintf(
+            throw new ParseError(null, sprintf(
                 'Operator "%s" expects its right operand to be %s, but instead it evaluates to %s.',
                 $this->token,
                 $this->rightOperandType,

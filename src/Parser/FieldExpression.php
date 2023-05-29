@@ -18,7 +18,7 @@ final class FieldExpression implements Expression
     ) {
         $leftOperandType = $leftOperand->type();
         if (!($leftOperandType instanceof StructType)) {
-            throw new ParseError(sprintf(
+            throw new ParseError(null, sprintf(
                 'Cannot access field "%s" on %s.',
                 $this->fieldName,
                 $leftOperandType,

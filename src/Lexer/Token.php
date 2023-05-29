@@ -7,7 +7,9 @@ namespace Bartfeenstra\Nel\Lexer;
 abstract class Token
 {
     public function __construct(
-        public readonly int $cursor,
+        public readonly string $source,
+        public readonly int $line,
+        public readonly int $column,
     ) {
     }
 }

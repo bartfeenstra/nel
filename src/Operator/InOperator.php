@@ -31,7 +31,7 @@ final class InOperator extends BinaryOperator
         $expectedListType = new ListType($expectedListItemType);
         $actualListType = $rightOperand->type();
         if (!($rightOperand instanceof ListExpression) or $actualListType != $expectedListType) {
-            throw new ParseError(sprintf(
+            throw new ParseError(null, sprintf(
                 'Operator "%s" expects its right operand to be %s, but instead it evaluates to %s.',
                 $this->token,
                 $expectedListType,
