@@ -37,6 +37,8 @@ final class Parser
 
     private function parseExpression(int $precedence = 0): ?Expression
     {
+        $expression = null;
+
         if ($this->is(DoNotParseToken::class)) {
             $this->consume();
             try {
@@ -49,19 +51,34 @@ final class Parser
         }
 
         if ($this->is(ExpressionFactoryToken::class)) {
-            $expression = $this->consume()->expression();
-        } elseif ($this->is(OperatorToken::class) and $this->current()->operator instanceof UnaryOperator) {
-            $operator = $this->consume()->operator;
-            $expression = new UnaryOperatorExpression(
-                $operator,
-                $this->expectExpression(),
-            );
+            /** @var ExpressionFactoryToken $token */
+            $token = $this->consume();
+            $expression = $token->expression();
+        } elseif ($this->is(OperatorToken::class)) {
+            /** @var OperatorToken $token */
+            $token = $this->current();
+            $operator = $token->operator;
+            if ($operator instanceof UnaryOperator) {
+                $this->consume();
+                $expression = new UnaryOperatorExpression(
+                    $operator,
+                    $this->expectExpression(),
+                );
+            }
         }
 
         // Finally, parse binary operators and see if they take the parsed expression as a left operand.
         while (!$this->endOfFile and $this->is(OperatorToken::class)) {
-            $operator = $this->current()->operator;
+            /** @var OperatorToken $token */
+            $token = $this->current();
+            $operator = $token->operator;
             if ($operator instanceof BinaryOperator and $operator->precedence > $precedence) {
+                if (!$expression) {
+                    throw new ParseError(sprintf(
+                        'Operator "%s" expects a left operand, but found nothing.',
+                        $operator->token,
+                    ));
+                }
                 $this->consume();
                 $rightOperand = $this->expectExpression(
                     Associativity::LEFT === $operator->associativity

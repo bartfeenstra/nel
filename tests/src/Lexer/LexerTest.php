@@ -24,6 +24,9 @@ use Bartfeenstra\Nel\Operator\OrOperator;
 use Bartfeenstra\Nel\Operator\StartsWithOperator;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @psalm-api
+ */
 final class LexerTest extends TestCase
 {
     public static function provideTokenize() : array {

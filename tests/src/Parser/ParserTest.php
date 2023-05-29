@@ -23,6 +23,9 @@ use Bartfeenstra\Nel\Parser\StringExpression;
 use Bartfeenstra\Nel\Parser\UnaryOperatorExpression;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @psalm-api
+ */
 final class ParserTest extends TestCase
 {
     public function testParseWithoutTokens(): void
