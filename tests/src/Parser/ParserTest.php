@@ -12,6 +12,7 @@ use Bartfeenstra\Nel\Lexer\StringToken;
 use Bartfeenstra\Nel\Lexer\WhitespaceToken;
 use Bartfeenstra\Nel\Operator\AddOperator;
 use Bartfeenstra\Nel\Operator\IsOperator;
+use Bartfeenstra\Nel\Operator\MultiplyOperator;
 use Bartfeenstra\Nel\Operator\NotOperator;
 use Bartfeenstra\Nel\Parser\BinaryOperatorExpression;
 use Bartfeenstra\Nel\Parser\BooleanExpression;
@@ -117,11 +118,11 @@ final class ParserTest extends TestCase
         );
     }
 
-    public function testParseNestedBinaryOperator(): void
+    public function testParseNestedBinaryOperatorWithoutPrecedence(): void
     {
         $sut = new Parser([
             new IntegerToken(0, 123),
-            new OperatorToken(0, AddOperator::get()),
+            new OperatorToken(0, MultiplyOperator::get()),
             new IntegerToken(0, 456),
             new OperatorToken(0, AddOperator::get()),
             new IntegerToken(0, 789),
@@ -130,11 +131,34 @@ final class ParserTest extends TestCase
             new BinaryOperatorExpression(
                 AddOperator::get(),
                 new BinaryOperatorExpression(
-                    AddOperator::get(),
+                    MultiplyOperator::get(),
                     new IntegerExpression(123),
                     new IntegerExpression(456),
                 ),
                 new IntegerExpression(789),
+            ),
+            $sut->parse(),
+        );
+    }
+
+    public function testParseNestedBinaryOperatorWithPrecedence(): void
+    {
+        $sut = new Parser([
+            new IntegerToken(0, 1),
+            new OperatorToken(0, AddOperator::get()),
+            new IntegerToken(0, 2),
+            new OperatorToken(0, MultiplyOperator::get()),
+            new IntegerToken(0, 3),
+        ]);
+        $this->assertEquals(
+            new BinaryOperatorExpression(
+                AddOperator::get(),
+                new IntegerExpression(1),
+                new BinaryOperatorExpression(
+                    MultiplyOperator::get(),
+                    new IntegerExpression(2),
+                    new IntegerExpression(3),
+                ),
             ),
             $sut->parse(),
         );
