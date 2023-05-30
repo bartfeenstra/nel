@@ -7,16 +7,14 @@ namespace Bartfeenstra\Nel\Operator;
 use Bartfeenstra\Nel\Type\IntegerType;
 use Bartfeenstra\Nel\Type\Type;
 
-final class MultiplyOperator extends BinaryOperator
+final class MultiplyOperator extends Operator
 {
     protected function __construct()
     {
         parent::__construct(
             'mul',
-            60,
-            Associativity::LEFT,
-            new IntegerType(),
-            new IntegerType(),
+            new Operand(60, new IntegerType()),
+            new Operand(61, new IntegerType()),
         );
     }
 

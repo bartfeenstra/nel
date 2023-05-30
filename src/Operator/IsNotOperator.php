@@ -8,16 +8,14 @@ use Bartfeenstra\Nel\Type\AnyType;
 use Bartfeenstra\Nel\Type\BooleanType;
 use Bartfeenstra\Nel\Type\Type;
 
-final class IsNotOperator extends BinaryOperator
+final class IsNotOperator extends Operator
 {
     protected function __construct()
     {
         parent::__construct(
             'is not',
-            20,
-            Associativity::LEFT,
-            new AnyType(),
-            new AnyType(),
+            new Operand(20, new AnyType()),
+            new Operand(21, new AnyType()),
         );
     }
 

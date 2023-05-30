@@ -7,16 +7,14 @@ namespace Bartfeenstra\Nel\Operator;
 use Bartfeenstra\Nel\Type\BooleanType;
 use Bartfeenstra\Nel\Type\Type;
 
-final class OrOperator extends BinaryOperator
+final class OrOperator extends Operator
 {
     protected function __construct()
     {
         parent::__construct(
             'or',
-            10,
-            Associativity::LEFT,
-            new BooleanType(),
-            new BooleanType(),
+            new Operand(10, new BooleanType()),
+            new Operand(11, new BooleanType()),
         );
     }
 

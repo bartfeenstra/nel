@@ -7,11 +7,15 @@ namespace Bartfeenstra\Nel\Operator;
 use Bartfeenstra\Nel\Type\BooleanType;
 use Bartfeenstra\Nel\Type\Type;
 
-final class NotOperator extends UnaryOperator
+final class NotOperator extends Operator
 {
     protected function __construct()
     {
-        parent::__construct('not', 50, new BooleanType());
+        parent::__construct(
+            'not',
+            null,
+            new Operand(51, new BooleanType()),
+        );
     }
 
     public function type(): Type

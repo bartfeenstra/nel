@@ -14,15 +14,17 @@ use Bartfeenstra\Nel\Lexer\NameToken;
 use Bartfeenstra\Nel\Lexer\OperatorToken;
 use Bartfeenstra\Nel\Lexer\SeparatorToken;
 use Bartfeenstra\Nel\Lexer\Token;
-use Bartfeenstra\Nel\Operator\Associativity;
-use Bartfeenstra\Nel\Operator\BinaryOperator;
-use Bartfeenstra\Nel\Operator\UnaryOperator;
 use Bartfeenstra\Nel\ParseError;
 use Bartfeenstra\Nel\Type\StructType;
 use Bartfeenstra\Nel\Type\Type;
 
 final class Parser
 {
+    /**
+     * @var list<Token> $tokens
+     */
+    private readonly array $tokens;
+
     private int $cursor;
 
     private int $end;
@@ -33,9 +35,10 @@ final class Parser
      * @param list<Token> $tokens
      */
     public function __construct(
-        private readonly array $tokens,
+        array $tokens,
         private readonly ?StructType $dataType = null,
     ) {
+        $this->tokens = [...array_filter($tokens, fn($token) => !($token instanceof DoNotParseToken))];
         $this->cursor = 0;
         $this->end = count($this->tokens);
         $this->endOfFile = false;
@@ -46,114 +49,110 @@ final class Parser
         if (!$this->tokens) {
             return null;
         }
+        // @todo Do check for unexpected remaining tokens here
         $expression = $this->parseExpression();
         if (!$this->endOfFile) {
-            $this->error('Unexpected token.');
+            $this->unexpectedTokenError();
         }
         return $expression;
     }
 
     private function parseExpression(int $precedence = 0): ?Expression
     {
-        if ($this->is(DoNotParseToken::class)) {
-            $this->consume();
-            /** @phpstan-ignore-next-line */
-            while (!$this->endOfFile and $this->is(DoNotParseToken::class)) {
-                $this->consume();
-            }
-            if ($this->endOfFile) {
-                return null;
-            }
-        }
-
         $expression = null;
 
-        if ($this->is(ExpressionFactoryToken::class)) {
-            /** @var ExpressionFactoryToken $token */
-            $token = $this->consume();
-            $expression = $token->expression();
-        } elseif ($this->is(OperatorToken::class)) {
-            /** @var OperatorToken $token */
-            $token = $this->current();
-            $operator = $token->operator;
-            if ($operator instanceof UnaryOperator) {
-                $this->consume();
-                $expression = new UnaryOperatorExpression(
-                    $operator,
-                    $this->expectExpression(),
-                );
-            }
-        } elseif ($this->is(NameToken::class)) {
-            /** @var NameToken $token */
-            $token = $this->consume();
-            $dataType = $this->dataType;
-            if (!$dataType or !array_key_exists($token->name, $dataType->fields)) {
-                $this->error(sprintf('No data with name "%s" exists in this context.', $token->name));
-            }
-            /** @var StructType $dataType */
-            $expression = new DataExpression($dataType->fieldType($token->name), $token->name);
-        } elseif ($this->is(ListOpenToken::class)) {
-            $this->consume();
-            $values = [];
-            while (!$this->endOfFile and !$this->is(ListCloseToken::class)) {
-                if ($this->is(SeparatorToken::class)) {
-                    $this->consume();
-                    continue;
+        while (!$this->endOfFile) {
+            $iterationCursorStart = $this->cursor;
+
+            if ($this->is(ExpressionFactoryToken::class)) {
+                /** @var ExpressionFactoryToken $token */
+                $token = $this->consume();
+                $expression = $token->expression();
+            } elseif ($this->is(NameToken::class)) {
+                /** @var NameToken $token */
+                $token = $this->consume();
+                $dataType = $this->dataType;
+                if (!$dataType or !array_key_exists($token->name, $dataType->fields)) {
+                    $this->error(sprintf('No data with name "%s" exists in this context.', $token->name));
                 }
+                /** @var StructType $dataType */
+                $expression = new DataExpression($dataType->fieldType($token->name), $token->name);
+            } elseif ($this->is(ListOpenToken::class)) {
+                $this->consume();
+                $values = [];
                 $valueExpression = $this->parseExpression();
                 if ($valueExpression) {
                     $values[] = $valueExpression;
                 }
+                do {
+                    if ($this->is(SeparatorToken::class)) {
+                        $this->consume();
+                        continue;
+                    }
+                    if ($this->is(ListCloseToken::class)) {
+                        $this->consume();
+                        break;
+                    }
+                    $valueExpression = $this->parseExpression();
+                    if ($valueExpression) {
+                        $values[] = $valueExpression;
+                        continue;
+                    }
+                    $this->unexpectedTokenError();
+                } while (!$this->endOfFile);
+                $expression = new ListExpression($values);
             }
-            if ($this->is(ListCloseToken::class)) {
+
+            while (!$this->endOfFile and $this->is(NamespaceToken::class)) {
                 $this->consume();
-            } else {
-                $this->error('List was not closed.');
-            }
-            $expression = new ListExpression($values);
-        }
-
-        while (!$this->endOfFile and $this->is(NamespaceToken::class)) {
-            $this->consume();
-            if (!$expression) {
-                $this->error('Operator "." expects a left operand, but found nothing.');
-            }
-            $nameToken = $this->consume();
-            if (!($nameToken instanceof NameToken)) {
-                $this->error('Operator "." must be followed by a field name');
-            }
-            /** @var Expression $expression */
-            /** @var NameToken $nameToken */
-            $expression = new FieldExpression($expression, $nameToken->name);
-        }
-
-        // Finally, parse binary operators and see if they take the parsed expression as a left operand.
-        while (!$this->endOfFile and $this->is(OperatorToken::class)) {
-            /** @var OperatorToken $token */
-            $token = $this->current();
-            $operator = $token->operator;
-            if ($operator instanceof BinaryOperator and $operator->precedence > $precedence) {
                 if (!$expression) {
-                    $this->error(sprintf(
-                        'Operator "%s" expects a left operand, but found nothing.',
-                        $operator->token,
-                    ));
+                    $this->error('Operator "." expects a left operand, but found nothing.');
+                }
+                $nameToken = $this->consume();
+                if (!($nameToken instanceof NameToken)) {
+                    $this->error('Operator "." must be followed by a field name');
+                }
+                /** @var Expression $expression */
+                /** @var NameToken $nameToken */
+                $expression = new FieldExpression($expression, $nameToken->name);
+            }
+
+            while (!$this->endOfFile and $this->is(OperatorToken::class)) {
+                /** @var OperatorToken $token */
+                $token = $this->current();
+                $operator = $token->operator;
+                $leftOperandExpression = null;
+                $rightOperandExpression = null;
+                if ($operator->isPostfix()) {
+                    /** @var \Bartfeenstra\Nel\Operator\Operand $leftOperand */
+                    $leftOperand = $operator->leftOperand;
+                    if ($leftOperand->precedence < $precedence) {
+                        break;
+                    }
+                    if (!$expression) {
+                        $this->error(sprintf(
+                            'Operator "%s" expects a left operand, but found nothing.',
+                            $operator->token,
+                        ));
+                    }
+                    $leftOperandExpression = $expression;
                 }
                 $this->consume();
-                $rightOperand = $this->expectExpression(
-                    Associativity::LEFT === $operator->associativity
-                        ?
-                        $operator->precedence + 1
-                        :
-                        $operator->precedence,
-                );
-                $expression = new BinaryOperatorExpression(
+                if ($operator->isPrefix()) {
+                    /** @var \Bartfeenstra\Nel\Operator\Operand $rightOperand */
+                    $rightOperand = $operator->rightOperand;
+                    $rightOperandExpression = $this->expectExpression($rightOperand->precedence);
+                }
+                $expression = new OperatorExpression(
                     $operator,
-                    $expression,
-                    $rightOperand,
+                    $leftOperandExpression,
+                    $rightOperandExpression,
                 );
-            } else {
-                break;
+            }
+
+            // Break out if this iteration has not parsed any tokens.
+            if ($iterationCursorStart === $this->cursor) {
+                return $expression;
             }
         }
 
@@ -164,6 +163,11 @@ final class Parser
     {
         $token = $this->endOfFile ? null : $this->current();
         throw new ParseError($token, $message);
+    }
+
+    private function unexpectedTokenError(): void
+    {
+        $this->error(sprintf('Unexpected token %s.', $this->current()::class));
     }
 
     private function is(string $type): bool

@@ -90,12 +90,12 @@ final class Lexer
                     true,
                 );
                 if ($stringMatches) {
-                    [$stringSource, $stringValue] = $stringMatches;
+                    $stringSource = $stringMatches[0];
                     yield new StringToken(
                         $this->source,
                         $this->line,
                         $this->column,
-                        $stringValue,
+                        mb_substr($stringSource, 1, -1),
                     );
                     $this->consume(mb_strlen($stringSource));
                     continue;
