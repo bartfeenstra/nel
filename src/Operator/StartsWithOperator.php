@@ -8,16 +8,14 @@ use Bartfeenstra\Nel\Type\BooleanType;
 use Bartfeenstra\Nel\Type\StringType;
 use Bartfeenstra\Nel\Type\Type;
 
-final class StartsWithOperator extends BinaryOperator
+final class StartsWithOperator extends Operator
 {
     protected function __construct()
     {
         parent::__construct(
             'starts with',
-            20,
-            Associativity::LEFT,
-            new StringType(),
-            new StringType(),
+            new Operand(20, new StringType()),
+            new Operand(21, new StringType()),
         );
     }
 

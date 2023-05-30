@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Bartfeenstra\Nel\Operator;
 
+use Bartfeenstra\Nel\ParseError;
+use Bartfeenstra\Nel\Parser\Expression;
 use Bartfeenstra\Nel\Type\Type;
 use InvalidArgumentException;
 
@@ -16,7 +18,8 @@ abstract class Operator
 
     protected function __construct(
         public readonly string $token,
-        public readonly int $precedence,
+        public readonly ?Operand $leftOperand,
+        public readonly ?Operand $rightOperand,
     ) {
     }
 
@@ -70,4 +73,75 @@ abstract class Operator
     }
 
     abstract public function type(): Type;
+
+    public function validateLeftOperand(Expression $operand): void
+    {
+        $this->assertPostfix();
+        /** @var Operand $leftOperand */
+        $leftOperand = $this->leftOperand;
+        if ($operand->type() != ($leftOperand->type)) {
+            throw new ParseError(null, sprintf(
+                'Operator "%s" expects its left operand to be %s, but instead it evaluates to %s.',
+                $this->token,
+                $leftOperand->type,
+                $operand->type(),
+            ));
+        }
+    }
+
+    public function validateRightOperand(Expression $operand): void
+    {
+        $this->assertPrefix();
+        /** @var Operand $rightOperand */
+        $rightOperand = $this->rightOperand;
+        if ($operand->type() != ($rightOperand->type)) {
+            throw new ParseError(null, sprintf(
+                'Operator "%s" expects its right operand to be %s, but instead it evaluates to %s.',
+                $this->token,
+                $rightOperand->type,
+                $operand->type(),
+            ));
+        }
+    }
+
+    public function validateOperands(Expression $leftOperand, Expression $rightOperand): void
+    {
+        $this->validateLeftOperand($leftOperand);
+        $this->validateRightOperand($rightOperand);
+    }
+
+    public function isPrefix(): bool
+    {
+        return null !== $this->rightOperand;
+    }
+
+    private function assertPrefix(): void
+    {
+        if (!$this->isPrefix()) {
+            throw new \RuntimeException(sprintf(
+                'Operator "%s" is not a prefix operator and does not take a right operand.',
+                $this->token,
+            ));
+        }
+    }
+
+    public function isPostfix(): bool
+    {
+        return null !== $this->leftOperand;
+    }
+
+    private function assertPostfix(): void
+    {
+        if (!$this->isPostfix()) {
+            throw new \RuntimeException(sprintf(
+                'Operator "%s" is not a postfix operator and does not take a left operand.',
+                $this->token,
+            ));
+        }
+    }
+
+    public function isInfix(): bool
+    {
+        return $this->isPrefix() and $this->isPostfix();
+    }
 }

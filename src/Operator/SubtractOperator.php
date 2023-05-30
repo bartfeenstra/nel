@@ -7,16 +7,14 @@ namespace Bartfeenstra\Nel\Operator;
 use Bartfeenstra\Nel\Type\IntegerType;
 use Bartfeenstra\Nel\Type\Type;
 
-final class SubtractOperator extends BinaryOperator
+final class SubtractOperator extends Operator
 {
     protected function __construct()
     {
         parent::__construct(
             'sub',
-            30,
-            Associativity::LEFT,
-            new IntegerType(),
-            new IntegerType(),
+            new Operand(30, new IntegerType()),
+            new Operand(31, new IntegerType()),
         );
     }
 

@@ -8,16 +8,14 @@ use Bartfeenstra\Nel\Type\BooleanType;
 use Bartfeenstra\Nel\Type\IntegerType;
 use Bartfeenstra\Nel\Type\Type;
 
-final class IsGreaterThanOperator extends BinaryOperator
+final class IsGreaterThanOperator extends Operator
 {
     protected function __construct()
     {
         parent::__construct(
             'gt',
-            20,
-            Associativity::LEFT,
-            new IntegerType(),
-            new IntegerType(),
+            new Operand(20, new IntegerType()),
+            new Operand(21, new IntegerType()),
         );
     }
 

@@ -7,16 +7,14 @@ namespace Bartfeenstra\Nel\Operator;
 use Bartfeenstra\Nel\Type\BooleanType;
 use Bartfeenstra\Nel\Type\Type;
 
-final class AndOperator extends BinaryOperator
+final class AndOperator extends Operator
 {
     protected function __construct()
     {
         parent::__construct(
             'and',
-            15,
-            Associativity::LEFT,
-            new BooleanType(),
-            new BooleanType(),
+            new Operand(15, new BooleanType()),
+            new Operand(16, new BooleanType()),
         );
     }
 
